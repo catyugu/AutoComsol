@@ -98,7 +98,8 @@ public class EcTCylinderStationary {
         System.out.println("CORE_DOM=" + coreDom + " SHELL_DOM=" + shellDom);
 
         // 材料: 内芯(导电+高热导) 与 外壳(绝缘)
-        // 材料 selection 必须保持 GEOMDIM 类型 (直接 set(int[]), 不要 .geom() 整几何)。
+        // 材料 selection 必须保持 GEOMDIM 类型 (直接 set(int[]), 不要 .geom()
+        // 整几何)。
         model.component(comp).material().create("mat_core", "Common");
         model.component(comp).material("mat_core").selection().set(new int[] {coreDom});
         model.component(comp)

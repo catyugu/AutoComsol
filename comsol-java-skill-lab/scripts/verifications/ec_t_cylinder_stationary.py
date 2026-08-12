@@ -59,18 +59,22 @@ Q1 = SIGMA1 * (V0 / L) ** 2  # 内芯均匀焦耳热 W/m^3
 def steady_core(r):
     """内芯解析解 (含源抛物线)。"""
     r = np.asarray(r, float)
-    return (TINF
-            + Q1 * R1 * R1 / (2 * R2 * H)
-            + Q1 * R1 * R1 / (2 * K2) * math.log(R2 / R1)
-            + Q1 * (R1 * R1 - r * r) / (4 * K1))
+    return (
+        TINF
+        + Q1 * R1 * R1 / (2 * R2 * H)
+        + Q1 * R1 * R1 / (2 * K2) * math.log(R2 / R1)
+        + Q1 * (R1 * R1 - r * r) / (4 * K1)
+    )
 
 
 def steady_shell(r):
     """外壳解析解 (无源对数)。"""
     r = np.asarray(r, float)
-    return (TINF
-            + Q1 * R1 * R1 / (2 * R2 * H)
-            + Q1 * R1 * R1 / (2 * K2) * np.log(R2 / np.maximum(r, 1e-9)))
+    return (
+        TINF
+        + Q1 * R1 * R1 / (2 * R2 * H)
+        + Q1 * R1 * R1 / (2 * K2) * np.log(R2 / np.maximum(r, 1e-9))
+    )
 
 
 def r_of(x, y):
@@ -101,11 +105,17 @@ def main():
             vdevs.append(abs(row[vcol] - V0 * (row[2] + 0.5) / L))
     if vdevs:
         vmax = max(vdevs)
-        checks.append(check("V_linear_core", vmax < 1e-3, vmax,
-                            "max|V-V0(z+0.5)/L| < 1e-3 V (core)", "V"))
+        checks.append(
+            check(
+                "V_linear_core",
+                vmax < 1e-3,
+                vmax,
+                "max|V-V0(z+0.5)/L| < 1e-3 V (core)",
+                "V",
+            )
+        )
     else:
-        checks.append(check("V_linear_core", False, None,
-                            "no core samples", "V"))
+        checks.append(check("V_linear_core", False, None, "no core samples", "V"))
 
     # ---- J_insulating_shell: 外壳电流密度≈0 (真正绝缘判据) ----
     # 注意: 电位场在外壳内连续(V 线性, Laplace 解), 但绝缘 σ→0 ⇒ J≈0。
@@ -116,38 +126,65 @@ def main():
         jcore = [row[jcol] for row in rows if r_of(row[0], row[1]) < R1 - 0.02]
         jmax_core = max(jcore) if jcore else 0.0
         ratio = jmax_sh / jmax_core if jmax_core > 0 else 1.0
-        checks.append(check("J_insulating_shell", ratio < 1e-3, ratio,
-                            "max J_shell / max J_core < 1e-3 (insulating)", ""))
+        checks.append(
+            check(
+                "J_insulating_shell",
+                ratio < 1e-3,
+                ratio,
+                "max J_shell / max J_core < 1e-3 (insulating)",
+                "",
+            )
+        )
     else:
-        checks.append(check("J_insulating_shell", False, None,
-                            "need normJ column", ""))
+        checks.append(check("J_insulating_shell", False, None, "need normJ column", ""))
 
     # ---- T_core_profile: 中平面内芯抛物线 ----
-    core_mids = [row for row in rows
-                 if abs(row[2]) < 0.02 and r_of(row[0], row[1]) < R1 - 0.03]
+    core_mids = [
+        row for row in rows if abs(row[2]) < 0.02 and r_of(row[0], row[1]) < R1 - 0.03
+    ]
     if core_mids:
-        devs = [abs(row[tcol] - steady_core(r_of(row[0], row[1])))
-                for row in core_mids]
+        devs = [abs(row[tcol] - steady_core(r_of(row[0], row[1]))) for row in core_mids]
         cdev = max(devs)
-        checks.append(check("T_core_profile", cdev < 3.0, cdev,
-                            "max|T-T_c(r)| < 3 K (core mid-plane)", "K"))
+        checks.append(
+            check(
+                "T_core_profile",
+                cdev < 3.0,
+                cdev,
+                "max|T-T_c(r)| < 3 K (core mid-plane)",
+                "K",
+            )
+        )
     else:
-        checks.append(check("T_core_profile", False, None,
-                            "no core mid-plane samples", "K"))
+        checks.append(
+            check("T_core_profile", False, None, "no core mid-plane samples", "K")
+        )
 
     # ---- T_shell_profile: 中平面外壳对数 ----
-    shell_mids = [row for row in rows
-                  if abs(row[2]) < 0.02 and r_of(row[0], row[1]) > R1 + 0.03
-                  and R2 - r_of(row[0], row[1]) > 0.03]
+    shell_mids = [
+        row
+        for row in rows
+        if abs(row[2]) < 0.02
+        and r_of(row[0], row[1]) > R1 + 0.03
+        and R2 - r_of(row[0], row[1]) > 0.03
+    ]
     if shell_mids:
-        devs = [abs(row[tcol] - steady_shell(r_of(row[0], row[1])))
-                for row in shell_mids]
+        devs = [
+            abs(row[tcol] - steady_shell(r_of(row[0], row[1]))) for row in shell_mids
+        ]
         sdev = max(devs)
-        checks.append(check("T_shell_profile", sdev < 3.0, sdev,
-                            "max|T-T_o(r)| < 3 K (shell mid-plane)", "K"))
+        checks.append(
+            check(
+                "T_shell_profile",
+                sdev < 3.0,
+                sdev,
+                "max|T-T_o(r)| < 3 K (shell mid-plane)",
+                "K",
+            )
+        )
     else:
-        checks.append(check("T_shell_profile", False, None,
-                            "no shell mid-plane samples", "K"))
+        checks.append(
+            check("T_shell_profile", False, None, "no shell mid-plane samples", "K")
+        )
 
     # ---- interface: r≈r1 温度连续 (内芯/外壳解析解在界面同一温度) ----
     # 用窄带 |r-R1|<0.005 采样界面, 避免混入两侧温度梯度。
@@ -159,23 +196,40 @@ def main():
     if both:
         T_expected = steady_core(R1)  # = steady_shell(R1), 界面同一温度
         idev = max(abs(T - T_expected) for T in both)
-        checks.append(check("interface_continuity", idev < 3.0, idev,
-                            "max|T-T(r1)| < 3 K at interface", "K"))
+        checks.append(
+            check(
+                "interface_continuity",
+                idev < 3.0,
+                idev,
+                "max|T-T(r1)| < 3 K at interface",
+                "K",
+            )
+        )
     else:
-        checks.append(check("interface_continuity", False, None,
-                            "no interface samples", "K"))
+        checks.append(
+            check("interface_continuity", False, None, "no interface samples", "K")
+        )
 
     # ---- convection: 外壁 r≈r2 温度应≈解析外壁温 ----
-    wall = [row[tcol] for row in rows
-            if abs(row[2]) < 0.02 and abs(r_of(row[0], row[1]) - R2) < 0.02]
+    wall = [
+        row[tcol]
+        for row in rows
+        if abs(row[2]) < 0.02 and abs(r_of(row[0], row[1]) - R2) < 0.02
+    ]
     if wall:
         Twall_analytic = steady_shell(R2)
         wdev = max(abs(T - Twall_analytic) for T in wall)
-        checks.append(check("convection_wall", wdev < 3.0, wdev,
-                            "max|T(r2)-T_analytic(r2)| < 3 K", "K"))
+        checks.append(
+            check(
+                "convection_wall",
+                wdev < 3.0,
+                wdev,
+                "max|T(r2)-T_analytic(r2)| < 3 K",
+                "K",
+            )
+        )
     else:
-        checks.append(check("convection_wall", False, None,
-                            "no wall samples", "K"))
+        checks.append(check("convection_wall", False, None, "no wall samples", "K"))
 
     # ---- z_symmetry: z 对称点温度一致 ----
     # 精确配对: 对每个 (x,y,z) 节点, 匹配 (x,y,-z) 的节点 (网格对称)。
@@ -184,20 +238,24 @@ def main():
     for row in rows:
         key = (round(row[0], 3), round(row[1], 3), round(abs(row[2]), 3))
         nodes_by_key.setdefault(key, []).append((row[2], row[tcol]))
-    sdevs = [max(t for _, t in v) - min(t for _, t in v)
-             for v in nodes_by_key.values() if len(v) >= 2]
+    sdevs = [
+        max(t for _, t in v) - min(t for _, t in v)
+        for v in nodes_by_key.values()
+        if len(v) >= 2
+    ]
     if sdevs:
         smax = max(sdevs)
-        checks.append(check("z_symmetry", smax < 0.5, smax,
-                            "max T asym across z=0 < 0.5 K", "K"))
+        checks.append(
+            check("z_symmetry", smax < 0.5, smax, "max T asym across z=0 < 0.5 K", "K")
+        )
     else:
-        checks.append(check("z_symmetry", False, None,
-                            "no paired z samples", "K"))
+        checks.append(check("z_symmetry", False, None, "no paired z samples", "K"))
 
-    evidence = {"analytic": "Coaxial 2-material: Joule core parabola + insulating shell log, "
-                            "full convective exterior"}
-    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out,
-                       evidence=evidence)
+    evidence = {
+        "analytic": "Coaxial 2-material: Joule core parabola + insulating shell log, "
+        "full convective exterior"
+    }
+    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out, evidence=evidence)
 
 
 if __name__ == "__main__":

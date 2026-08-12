@@ -5,32 +5,22 @@ import com.comsol.model.util.ModelUtil;
 /**
  * TCylinderStationary.java — 实验 T1: 3D 稳态传热基准（空心圆柱, HeatTransfer）
  *
- * 物理: 传热 (HeatTransfer, ht) — 本机纯固体传热接口
- * 几何: 空心圆柱(圆筒) r_in=0.3m, r_out=0.5m, h=0.2m, 中心在原点
- *       外圆柱 Cylinder(r=0.5) 减 内圆柱 Cylinder(r=0.3) → Difference
- * 边界(按坐标提取面):
- *   内壁(曲面 r≈0.3) TemperatureBoundary T=T1=100K
- *   外壁(曲面 r≈0.5) TemperatureBoundary T=T2=300K
- *   上下端面(z=±0.1) ThermalInsulation(默认 ins1)
- * 材料: Common 材料, thermalconductivity = 50 W/(m*K)
- * 研究: Stationary
+ * <p>物理: 传热 (HeatTransfer, ht) — 本机纯固体传热接口 几何: 空心圆柱(圆筒) r_in=0.3m, r_out=0.5m, h=0.2m, 中心在原点 外圆柱
+ * Cylinder(r=0.5) 减 内圆柱 Cylinder(r=0.3) → Difference 边界(按坐标提取面): 内壁(曲面 r≈0.3) TemperatureBoundary
+ * T=T1=100K 外壁(曲面 r≈0.5) TemperatureBoundary T=T2=300K 上下端面(z=±0.1) ThermalInsulation(默认 ins1) 材料:
+ * Common 材料, thermalconductivity = 50 W/(m*K) 研究: Stationary
  *
- * 解析解（圆柱坐标稳态径向传热, 无轴向梯度）:
- *   T(r) = T1 + (T2-T1) * ln(r/r_in) / ln(r_out/r_in)
- *   r_in=0.3, r_out=0.5 → T(r) = 100 + 200*ln(r/0.3)/ln(0.5/0.3)
- *   检查点: r=0.4 → T = 100 + 200*ln(0.4/0.3)/ln(0.5/0.3) ≈ 100+200*0.2877/0.5108 ≈ 212.7 K
+ * <p>解析解（圆柱坐标稳态径向传热, 无轴向梯度）: T(r) = T1 + (T2-T1) * ln(r/r_in) / ln(r_out/r_in) r_in=0.3, r_out=0.5
+ * → T(r) = 100 + 200*ln(r/0.3)/ln(0.5/0.3) 检查点: r=0.4 → T = 100 + 200*ln(0.4/0.3)/ln(0.5/0.3) ≈
+ * 100+200*0.2877/0.5108 ≈ 212.7 K
  *
- * 本机证据:
- *   - HeatTransferInSolids 报 Unknown physics interface（不可用）
- *   - HeatTransfer 是本机纯固体传热接口（HeatProbe: tags solid1/init1/ins1/...）
- *   - 边界特征名 TemperatureBoundary（inline_induction_heater.mph 证据）
- *   - TemperatureBoundary 参数: T0_src=userdef, T0（本机 XML 证据）
- *   - 材料属性 thermalconductivity（finned_pipe.mph 证据）
+ * <p>本机证据: - HeatTransferInSolids 报 Unknown physics interface（不可用） - HeatTransfer
+ * 是本机纯固体传热接口（HeatProbe: tags solid1/init1/ins1/...） - 边界特征名
+ * TemperatureBoundary（inline_induction_heater.mph 证据） - TemperatureBoundary 参数: T0_src=userdef,
+ * T0（本机 XML 证据） - 材料属性 thermalconductivity（finned_pipe.mph 证据）
  *
- * 模块需求: Heat Transfer 模块
- * 运行: comsolcompile TCylinderStationary.java;
- *       comsolbatch -inputfile ... -outputfile ...  <savepath.mph> <csv-out>
- * 参数: args[0]=mph 保存路径, args[1]=CSV 导出路径
+ * <p>模块需求: Heat Transfer 模块 运行: comsolcompile TCylinderStationary.java; comsolbatch -inputfile ...
+ * -outputfile ... <savepath.mph> <csv-out> 参数: args[0]=mph 保存路径, args[1]=CSV 导出路径
  */
 public class TCylinderStationary {
 
@@ -54,22 +44,35 @@ public class TCylinderStationary {
         model.component(comp).geom("geom1").create("cyl_out", "Cylinder");
         model.component(comp).geom("geom1").feature("cyl_out").set("r", "r_out");
         model.component(comp).geom("geom1").feature("cyl_out").set("h", "H");
-        model.component(comp).geom("geom1").feature("cyl_out").set("pos", new double[]{0, 0, -0.1});
+        model.component(comp)
+                .geom("geom1")
+                .feature("cyl_out")
+                .set("pos", new double[] {0, 0, -0.1});
 
         model.component(comp).geom("geom1").create("cyl_in", "Cylinder");
         model.component(comp).geom("geom1").feature("cyl_in").set("r", "r_in");
         model.component(comp).geom("geom1").feature("cyl_in").set("h", "H");
-        model.component(comp).geom("geom1").feature("cyl_in").set("pos", new double[]{0, 0, -0.1});
+        model.component(comp).geom("geom1").feature("cyl_in").set("pos", new double[] {0, 0, -0.1});
 
         model.component(comp).geom("geom1").create("diff1", "Difference");
-        model.component(comp).geom("geom1").feature("diff1").selection("input").set(new String[]{"cyl_out"});
-        model.component(comp).geom("geom1").feature("diff1").selection("input2").set(new String[]{"cyl_in"});
+        model.component(comp)
+                .geom("geom1")
+                .feature("diff1")
+                .selection("input")
+                .set(new String[] {"cyl_out"});
+        model.component(comp)
+                .geom("geom1")
+                .feature("diff1")
+                .selection("input2")
+                .set(new String[] {"cyl_in"});
         model.component(comp).geom("geom1").run();
 
         // 材料: 热导率（Common 材料 def 属性组）
         model.component(comp).material().create("mat1", "Common");
-        model.component(comp).material("mat1").propertyGroup("def")
-            .set("thermalconductivity", new String[][]{{"k"}});
+        model.component(comp)
+                .material("mat1")
+                .propertyGroup("def")
+                .set("thermalconductivity", new String[][] {{"k"}});
 
         // 物理场: HeatTransfer（本机纯固体传热接口）
         model.component(comp).physics().create("ht", "HeatTransfer", "geom1");
@@ -112,7 +115,7 @@ public class TCylinderStationary {
         model.result().export().create("data1", "Data");
         model.result().export("data1").set("data", "dset1");
         model.result().export("data1").set("filename", csvOut);
-        model.result().export("data1").set("expr", new String[]{"T"});
+        model.result().export("data1").set("expr", new String[] {"T"});
         model.result().export("data1").run();
 
         // 保存
@@ -149,13 +152,14 @@ public class TCylinderStationary {
             if (pr == null || pr.length < 2) return null;
             double p0 = (pr[0] + pr[1]) / 2;
             double p1 = (pr.length >= 4) ? (pr[2] + pr[3]) / 2 : 0.5;
-            double[][] pts = gi.faceX(f, new double[][]{{p0, p1}});
+            double[][] pts = gi.faceX(f, new double[][] {{p0, p1}});
             if (pts != null && pts.length > 0) return pts[0];
         } catch (Exception e) {
             try {
-                double[][] pts = gi.faceX(f, new double[][]{{0.5, 0.5}});
+                double[][] pts = gi.faceX(f, new double[][] {{0.5, 0.5}});
                 if (pts != null && pts.length > 0) return pts[0];
-            } catch (Exception e2) { }
+            } catch (Exception e2) {
+            }
         }
         return null;
     }
@@ -163,8 +167,7 @@ public class TCylinderStationary {
     /** 断言面存在且非空。 */
     private static void requireFaces(String label, int[] faces) {
         if (faces == null || faces.length == 0) {
-            throw new IllegalStateException(
-                "facesAtRadius: no face matched for '" + label + "'");
+            throw new IllegalStateException("facesAtRadius: no face matched for '" + label + "'");
         }
     }
 }

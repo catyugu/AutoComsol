@@ -4,14 +4,11 @@ import com.comsol.model.util.ModelUtil;
 /**
  * BaselineModel.java — 最小 Java 建模基线
  *
- * 目的: 验证 comsolcompile 能编译、comsolbatch 能运行一个最小 COMSOL Java 模型。
- * 该模型只创建 Model 对象、一个 2D 组件和一个几何，不求解，仅验证:
- *   - 环境/类路径正确
- *   - API 调用链可用
- *   - 模型可保存为 .mph
+ * <p>目的: 验证 comsolcompile 能编译、comsolbatch 能运行一个最小 COMSOL Java 模型。 该模型只创建 Model 对象、一个 2D
+ * 组件和一个几何，不求解，仅验证: - 环境/类路径正确 - API 调用链可用 - 模型可保存为 .mph
  *
- * 用法: comsolcompile BaselineModel.java; comsolbatch -inputfile BaselineModel.class ...
- * 模块需求: COMSOL Multiphysics 基础（无额外模块）
+ * <p>用法: comsolcompile BaselineModel.java; comsolbatch -inputfile BaselineModel.class ... 模块需求:
+ * COMSOL Multiphysics 基础（无额外模块）
  */
 public class BaselineModel {
 
@@ -29,10 +26,11 @@ public class BaselineModel {
         model.component(comp).geom().create("geom1", 2);
 
         // 创建 2D 单位正方形，边长 1 m，中心在原点
-        // 本机错误证据: Square 的 size 属性是标量(边长) "Expected a finite real number, Expected unit is: m"
+        // 本机错误证据: Square 的 size 属性是标量(边长) "Expected a finite real
+        // number, Expected unit is: m"
         model.component(comp).geom("geom1").create("sq1", "Square");
         model.component(comp).geom("geom1").feature("sq1").set("size", 1.0);
-        model.component(comp).geom("geom1").feature("sq1").set("pos", new double[]{-0.5, -0.5});
+        model.component(comp).geom("geom1").feature("sq1").set("pos", new double[] {-0.5, -0.5});
 
         // 构建几何
         model.component(comp).geom("geom1").run();

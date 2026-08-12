@@ -20,3 +20,6 @@ skill.zip
 # Python
 __pycache__/
 *.pyc
+
+# 本机特定产物
+machine-profile.md

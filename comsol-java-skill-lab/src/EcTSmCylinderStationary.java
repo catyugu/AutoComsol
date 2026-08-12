@@ -5,39 +5,34 @@ import com.comsol.model.util.ModelUtil;
 /**
  * EcTSmCylinderStationary: 3D 同轴双材料稳态电→热→力耦合（含解析解）
  *
- * <p>物理: 电流 (ConductiveMedia, ec) + 传热 (HeatTransfer, ht) + 固体力学 (SolidMechanics, solid)，
- * 焦耳热经 ElectromagneticHeating 耦合 (ec→ht)，温度场经 ThermalExpansion 域特征 (ht→solid)。
+ * <p>物理: 电流 (ConductiveMedia, ec) + 传热 (HeatTransfer, ht) + 固体力学 (SolidMechanics, solid)， 焦耳热经
+ * ElectromagneticHeating 耦合 (ec→ht)，温度场经 ThermalExpansion 域特征 (ht→solid)。
  *
  * <p>几何: 3D 同轴圆柱（内芯 r1=0.15 + 外壳 r1&lt;r&lt;r2=0.3, L=1, 中心原点）→ 2 个独立域。
  *
- * <p>电: 顶面 Terminal V0=0.3V, 底面 Ground; 电流只流经内芯(外壳 σ≈0 绝缘) →
- * 内芯轴向 V=V0·(z+L/2)/L 线性, J=σ1·V0/L 均匀, 焦耳热 Q1=σ1·(V0/L)² 均匀（唯一热源）。
+ * <p>电: 顶面 Terminal V0=0.3V, 底面 Ground; 电流只流经内芯(外壳 σ≈0 绝缘) → 内芯轴向 V=V0·(z+L/2)/L 线性, J=σ1·V0/L 均匀,
+ * 焦耳热 Q1=σ1·(V0/L)² 均匀（唯一热源）。
  *
- * <p>热: 侧面+顶面+底面 全部对流 h=200 → T∞=293K（无绝热）。稳态径向温度:
- *   内芯 T_c(r)=T∞+Q1·r1²/(2r2h)+Q1·r1²/(2k2)·ln(r2/r1)+Q1·(r1²-r²)/(4k1) （含源抛物线）
- *   外壳 T_o(r)=T∞+Q1·r1²/(2r2h)+Q1·r1²/(2k2)·ln(r2/r)   （无源对数）
+ * <p>热: 侧面+顶面+底面 全部对流 h=200 → T∞=293K（无绝热）。稳态径向温度: 内芯
+ * T_c(r)=T∞+Q1·r1²/(2r2h)+Q1·r1²/(2k2)·ln(r2/r1)+Q1·(r1²-r²)/(4k1) （含源抛物线） 外壳
+ * T_o(r)=T∞+Q1·r1²/(2r2h)+Q1·r1²/(2k2)·ln(r2/r) （无源对数）
  *
- * <p>力: 广义平面应变 (ε_z=0): 下端面 z=-0.5 Roller (uz=0), 上端面 z=+0.5 Roller (uz=0)，
- * 径向自由; RigidMotionSuppression 抑制径向刚体模态。
- * 内芯/外壳 E,ν 相同、仅 α 不同 → 界面位移/径向应力自动连续, 解析解单常数。
+ * <p>力: 广义平面应变 (ε_z=0): 下端面 z=-0.5 Roller (uz=0), 上端面 z=+0.5 Roller (uz=0)， 径向自由;
+ * RigidMotionSuppression 抑制径向刚体模态。 内芯/外壳 E,ν 相同、仅 α 不同 → 界面位移/径向应力自动连续, 解析解单常数。
  *
- * <p>热应力解析解 (ε_z=0 轴对称, E1=E2, ν1=ν2, α 分片):
- *   定义 ψ(r)=α(r)·(T(r)-Tref), Q(r)=∫₀ʳ ψ(r')·r' dr'（分片数值积分）,
- *   m=(1+ν)/(1-ν), G=E/(2(1+ν)), λ=Eν/((1+ν)(1-2ν))
- *   C1 = G·m·Q(r2) / ((λ+G)·r2²)
- *   σ_r(r) = -2G·m·Q(r)/r² + 2(λ+G)C1
- *   σ_θ(r) = -2G·m·ψ(r) + 2G·m·Q(r)/r² + 2(λ+G)C1
- *   σ_z(r) = 2λ·C1 - 2G·m·ψ(r)
- * 验证在 scripts/verifications/ec_tsm_cylinder_stationary.py（y=0 半轴: σ_r=sx, σ_θ=sy, σ_z=sz）。
+ * <p>热应力解析解 (ε_z=0 轴对称, E1=E2, ν1=ν2, α 分片): 定义 ψ(r)=α(r)·(T(r)-Tref), Q(r)=∫₀ʳ ψ(r')·r'
+ * dr'（分片数值积分）, m=(1+ν)/(1-ν), G=E/(2(1+ν)), λ=Eν/((1+ν)(1-2ν)) C1 = G·m·Q(r2) / ((λ+G)·r2²) σ_r(r)
+ * = -2G·m·Q(r)/r² + 2(λ+G)C1 σ_θ(r) = -2G·m·ψ(r) + 2G·m·Q(r)/r² + 2(λ+G)C1 σ_z(r) = 2λ·C1 -
+ * 2G·m·ψ(r) 验证在 scripts/verifications/ec_tsm_cylinder_stationary.py（y=0 半轴: σ_r=sx, σ_θ=sy,
+ * σ_z=sz）。
  *
  * <p>本机证据: - ThermalExpansion 域特征: physics("solid").create("te1","ThermalExpansion",3),
- *   alpha_mat='from_mat' 用材料 thermalexpansioncoefficient, minput_strainreferencetemperature=Tref
- *   - 材料 def: E/nu/thermalexpansioncoefficient（9分量）; lemm1 E_mat=from_mat 默认
- *   - 约束: Roller (uz 法向), RigidMotionSuppression (contributingPoints=automatic)
- *   - 变量: solid.sx/sy/sz (正应力), solid.disp
+ * alpha_mat='from_mat' 用材料 thermalexpansioncoefficient, minput_strainreferencetemperature=Tref - 材料
+ * def: E/nu/thermalexpansioncoefficient（9分量）; lemm1 E_mat=from_mat 默认 - 约束: Roller (uz 法向),
+ * RigidMotionSuppression (contributingPoints=automatic) - 变量: solid.sx/sy/sz (正应力), solid.disp
  *
- * <p>模块需求: ACDC + Heat Transfer + Structural Mechanics
- * 运行: python scripts/run.py all EcTSmCylinderStationary <run-dir>   args[0]=mph, args[1]=CSV
+ * <p>模块需求: ACDC + Heat Transfer + Structural Mechanics 运行: python scripts/run.py all
+ * EcTSmCylinderStationary <run-dir> args[0]=mph, args[1]=CSV
  */
 public class EcTSmCylinderStationary {
 
@@ -75,18 +70,32 @@ public class EcTSmCylinderStationary {
         model.component(comp).geom("geom1").create("cyl_out", "Cylinder");
         model.component(comp).geom("geom1").feature("cyl_out").set("r", "r2");
         model.component(comp).geom("geom1").feature("cyl_out").set("h", "L");
-        model.component(comp).geom("geom1").feature("cyl_out").set("pos", new double[] {0, 0, -0.5});
+        model.component(comp)
+                .geom("geom1")
+                .feature("cyl_out")
+                .set("pos", new double[] {0, 0, -0.5});
         model.component(comp).geom("geom1").create("cyl_rm", "Cylinder");
         model.component(comp).geom("geom1").feature("cyl_rm").set("r", "r1");
         model.component(comp).geom("geom1").feature("cyl_rm").set("h", "L");
         model.component(comp).geom("geom1").feature("cyl_rm").set("pos", new double[] {0, 0, -0.5});
         model.component(comp).geom("geom1").create("diff1", "Difference");
-        model.component(comp).geom("geom1").feature("diff1").selection("input").set(new String[] {"cyl_out"});
-        model.component(comp).geom("geom1").feature("diff1").selection("input2").set(new String[] {"cyl_rm"});
+        model.component(comp)
+                .geom("geom1")
+                .feature("diff1")
+                .selection("input")
+                .set(new String[] {"cyl_out"});
+        model.component(comp)
+                .geom("geom1")
+                .feature("diff1")
+                .selection("input2")
+                .set(new String[] {"cyl_rm"});
         model.component(comp).geom("geom1").create("cyl_core", "Cylinder");
         model.component(comp).geom("geom1").feature("cyl_core").set("r", "r1");
         model.component(comp).geom("geom1").feature("cyl_core").set("h", "L");
-        model.component(comp).geom("geom1").feature("cyl_core").set("pos", new double[] {0, 0, -0.5});
+        model.component(comp)
+                .geom("geom1")
+                .feature("cyl_core")
+                .set("pos", new double[] {0, 0, -0.5});
         model.component(comp).geom("geom1").run();
 
         // 域识别（确定性）: 最大半径最小的域=内芯, 最大的=外壳
@@ -95,13 +104,20 @@ public class EcTSmCylinderStationary {
         int coreDom = coreShell[0], shellDom = coreShell[1];
         System.out.println("CORE_DOM=" + coreDom + " SHELL_DOM=" + shellDom);
 
-        // 材料: 内芯(导电+α1) 与 外壳(绝缘+α2); 两相 E,ν 相同 (E,ν 在 lemm1 userdef 设, M1 实证)
+        // 材料: 内芯(导电+α1) 与 外壳(绝缘+α2); 两相 E,ν 相同 (E,ν 在 lemm1 userdef
+        // 设, M1 实证)
         model.component(comp).material().create("mat_core", "Common");
         model.component(comp).material("mat_core").selection().set(new int[] {coreDom});
         setMat(model.component(comp).material("mat_core"), "sigma1", "k1", "rho1", "Cp1", "alpha1");
         model.component(comp).material().create("mat_shell", "Common");
         model.component(comp).material("mat_shell").selection().set(new int[] {shellDom});
-        setMat(model.component(comp).material("mat_shell"), "sigma2", "k2", "rho2", "Cp2", "alpha2");
+        setMat(
+                model.component(comp).material("mat_shell"),
+                "sigma2",
+                "k2",
+                "rho2",
+                "Cp2",
+                "alpha2");
 
         // 物理场
         model.component(comp).physics().create("ec", "ConductiveMedia", "geom1");
@@ -148,7 +164,9 @@ public class EcTSmCylinderStationary {
         model.component(comp).multiphysics("te1").set("Heat_physics", "ht");
         model.component(comp).multiphysics("te1").set("Solid_physics", "solid");
         model.component(comp).multiphysics("te1").set("alpha_mat", "from_mat");
-        model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature_src", "userdef");
+        model.component(comp)
+                .multiphysics("te1")
+                .set("minput_strainreferencetemperature_src", "userdef");
         model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature", "Tref");
 
         // 约束: ε_z=0 广义平面应变 (两端 Roller uz=0, 径向自由) + 刚体抑制
@@ -157,7 +175,11 @@ public class EcTSmCylinderStationary {
         model.component(comp).physics("solid").create("roll_top", "Roller", 2);
         model.component(comp).physics("solid").feature("roll_top").selection().set(top);
         model.component(comp).physics("solid").create("rms1", "RigidMotionSuppression", 3);
-        model.component(comp).physics("solid").feature("rms1").selection().set(new int[] {coreDom, shellDom});
+        model.component(comp)
+                .physics("solid")
+                .feature("rms1")
+                .selection()
+                .set(new int[] {coreDom, shellDom});
 
         // 网格 + 研究
         model.component(comp).mesh().create("mesh1");
@@ -173,8 +195,11 @@ public class EcTSmCylinderStationary {
         model.result().export().create("data1", "Data");
         model.result().export("data1").set("data", "dset1");
         model.result().export("data1").set("filename", csvOut);
-        model.result().export("data1").set(
-                "expr", new String[] {"V", "T", "solid.sx", "solid.sy", "solid.sz", "solid.disp"});
+        model.result()
+                .export("data1")
+                .set(
+                        "expr",
+                        new String[] {"V", "T", "solid.sx", "solid.sy", "solid.sz", "solid.disp"});
         model.result().export("data1").run();
 
         String outPath = args.length > 0 ? args[0] : "EcTSmCylinderStationary.mph";
@@ -187,16 +212,24 @@ public class EcTSmCylinderStationary {
     }
 
     /** 写材料 def 组各属性（电/热/热膨胀系数）。E,ν 在 lemm1 userdef 设。 */
-    private static void setMat(com.comsol.model.Material mat, String sigma, String k,
-            String rho, String cp, String alpha) {
+    private static void setMat(
+            com.comsol.model.Material mat,
+            String sigma,
+            String k,
+            String rho,
+            String cp,
+            String alpha) {
         mat.propertyGroup("def").set("electricconductivity", new String[][] {{sigma}});
         mat.propertyGroup("def").set("relpermittivity", new String[][] {{"1"}});
         mat.propertyGroup("def").set("thermalconductivity", new String[][] {{k}});
         mat.propertyGroup("def").set("density", new String[][] {{rho}});
         mat.propertyGroup("def").set("heatcapacity", new String[][] {{cp}});
-        // thermalexpansioncoefficient: 3x3 对称张量扁平为 9 个值 (xx,xy,xz,yx,yy,yz,zx,zy,zz)
-        mat.propertyGroup("def").set("thermalexpansioncoefficient",
-                new String[] {alpha, "0", "0", "0", alpha, "0", "0", "0", alpha});
+        // thermalexpansioncoefficient: 3x3 对称张量扁平为 9 个值
+        // (xx,xy,xz,yx,yy,yz,zx,zy,zz)
+        mat.propertyGroup("def")
+                .set(
+                        "thermalexpansioncoefficient",
+                        new String[] {alpha, "0", "0", "0", alpha, "0", "0", "0", alpha});
     }
 
     /** 加对流换热边界。 */
@@ -206,7 +239,10 @@ public class EcTSmCylinderStationary {
         model.component(comp).physics("ht").feature(tag).set("HeatFluxType", "ConvectiveHeatFlux");
         model.component(comp).physics("ht").feature(tag).set("minput_temperature_src", "userdef");
         model.component(comp).physics("ht").feature(tag).set("minput_temperature", "Tinf");
-        model.component(comp).physics("ht").feature(tag).set("HeatTransferCoefficientType", "UserDef");
+        model.component(comp)
+                .physics("ht")
+                .feature(tag)
+                .set("HeatTransferCoefficientType", "UserDef");
         model.component(comp).physics("ht").feature(tag).set("h", "h_conv");
     }
 

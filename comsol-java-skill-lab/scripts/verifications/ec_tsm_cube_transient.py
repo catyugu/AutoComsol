@@ -166,8 +166,9 @@ def main():
 
     xyz, times = parse_columns(headers)
     if not times:
-        checks.append(check("time_columns", False, None,
-                            "no '@ t=' columns found", "s"))
+        checks.append(
+            check("time_columns", False, None, "no '@ t=' columns found", "s")
+        )
         return emit_report(CASE_KEY, csv_path, checks, json_out, md_out)
     print(f"detected {len(times)} time steps: {[t for t, _ in times]}")
 
@@ -177,21 +178,34 @@ def main():
         for row in rows:
             vdevs.append(abs(row[cols["V"]] - V0 * (row[0] + A) / L))
     vmax = max(vdevs)
-    checks.append(check("V_linear", vmax < 1e-4, vmax,
-                        "max|V-V0(x+a)/L| < 1e-4 V (all times)", "V"))
+    checks.append(
+        check(
+            "V_linear", vmax < 1e-4, vmax, "max|V-V0(x+a)/L| < 1e-4 V (all times)", "V"
+        )
+    )
 
     # ---- T_steady_profile: 末时刻中平面 (x,T) 对稳态解析解 ----
     last_t = max(times, key=lambda e: e[0])[0]
     last_cols = dict(max(times, key=lambda e: e[0])[1])
-    mids = [row for row in rows
-            if abs(row[1]) < 0.02 and abs(row[2]) < 0.02  # y,z≈0 中轴
-            and A - abs(row[0]) > 0.02]  # 避开端面
+    mids = [
+        row
+        for row in rows
+        if abs(row[1]) < 0.02
+        and abs(row[2]) < 0.02  # y,z≈0 中轴
+        and A - abs(row[0]) > 0.02
+    ]  # 避开端面
     if mids:
-        tdevs = [abs(row[last_cols["T"]] - T_analytic(row[0], last_t))
-                 for row in mids]
+        tdevs = [abs(row[last_cols["T"]] - T_analytic(row[0], last_t)) for row in mids]
         tmax = max(tdevs)
-        checks.append(check("T_steady_profile", tmax < 3.0, tmax,
-                            f"max|T(x,t={last_t:.0f})-analytic| < 3 K (mid-axis)", "K"))
+        checks.append(
+            check(
+                "T_steady_profile",
+                tmax < 3.0,
+                tmax,
+                f"max|T(x,t={last_t:.0f})-analytic| < 3 K (mid-axis)",
+                "K",
+            )
+        )
     else:
         checks.append(check("T_steady_profile", False, None, "no mid samples", "K"))
 
@@ -200,9 +214,11 @@ def main():
     for t, cols in times:
         if t == 0 or t == last_t:
             continue
-        mids = [row for row in rows
-                if abs(row[1]) < 0.02 and abs(row[2]) < 0.02
-                and A - abs(row[0]) > 0.02]
+        mids = [
+            row
+            for row in rows
+            if abs(row[1]) < 0.02 and abs(row[2]) < 0.02 and A - abs(row[0]) > 0.02
+        ]
         if not mids:
             continue
         devs = [abs(row[cols["T"]] - T_analytic(row[0], t)) for row in mids]
@@ -210,12 +226,26 @@ def main():
     if worst_by_t:
         worst_t = max(worst_by_t, key=lambda k: worst_by_t[k])
         worst = float(worst_by_t[worst_t])
-        checks.append(check("T_transient_profile", worst < 3.0, worst,
-                            "max|T(x,t)-analytic| < 3 K (mid-axis, transient)", "K"))
+        checks.append(
+            check(
+                "T_transient_profile",
+                worst < 3.0,
+                worst,
+                "max|T(x,t)-analytic| < 3 K (mid-axis, transient)",
+                "K",
+            )
+        )
         checks[-1]["worst_at_t"] = worst_t
     else:
-        checks.append(check("T_transient_profile", False, None,
-                            "no mid samples at intermediate times", "K"))
+        checks.append(
+            check(
+                "T_transient_profile",
+                False,
+                None,
+                "no mid samples at intermediate times",
+                "K",
+            )
+        )
 
     # ---- sigma_x_uniform: 每时刻 σ_x 空间均匀, σ_y/σ_z 中部均值≈0 ----
     sx_std_max = 0.0
@@ -227,15 +257,27 @@ def main():
         sy = [row[cols["sy"]] for row in mid_rows]
         sz = [row[cols["sz"]] for row in mid_rows]
         sx_std_max = max(sx_std_max, float(np.std(sx)))
-        syz_mean_max = max(syz_mean_max,
-                           float(max(abs(np.mean(sy)), abs(np.mean(sz)))))
+        syz_mean_max = max(syz_mean_max, float(max(abs(np.mean(sy)), abs(np.mean(sz)))))
     # σ_x 量级参考 (末时刻)
     ref_sigma = max(abs(r[last_cols["sx"]]) for r in rows)
-    checks.append(check("sigma_x_uniform", sx_std_max < 0.05 * max(ref_sigma, 1.0),
-                        sx_std_max, "max std of σ_x < 5% of |σ_x| scale", "Pa"))
-    checks.append(check("sigma_yz_zero", syz_mean_max < 0.1 * max(ref_sigma, 1.0),
-                        syz_mean_max,
-                        "max |mean σ_y|,|mean σ_z| (mid-region) < 10% of |σ_x|", "Pa"))
+    checks.append(
+        check(
+            "sigma_x_uniform",
+            sx_std_max < 0.05 * max(ref_sigma, 1.0),
+            sx_std_max,
+            "max std of σ_x < 5% of |σ_x| scale",
+            "Pa",
+        )
+    )
+    checks.append(
+        check(
+            "sigma_yz_zero",
+            syz_mean_max < 0.1 * max(ref_sigma, 1.0),
+            syz_mean_max,
+            "max |mean σ_y|,|mean σ_z| (mid-region) < 10% of |σ_x|",
+            "Pa",
+        )
+    )
 
     # ---- sigma_x_analytic: mean(σ_x) ≈ -E·α·(⟨T⟩-Tref) ----
     # 1D 杆理论: σ_x 全局均值精确 = -Eα⟨ΔT⟩ (等温横截面 + 端部固定)。
@@ -253,8 +295,15 @@ def main():
         # 末时刻 σ_x 量级最大, 用其解析值作参考
         avgT_last = float(np.mean([row[last_cols["T"]] for row in rows]))
         ref = max(1.0, abs(-E * ALPHA_T * (avgT_last - TREF)))
-        checks.append(check("sigma_x_analytic", worst_sx < 0.05 * ref,
-                            worst_sx, "max|mean(σ_x)+Eα(⟨T⟩-Tref)| < 5% of |σ_x|", "Pa"))
+        checks.append(
+            check(
+                "sigma_x_analytic",
+                worst_sx < 0.05 * ref,
+                worst_sx,
+                "max|mean(σ_x)+Eα(⟨T⟩-Tref)| < 5% of |σ_x|",
+                "Pa",
+            )
+        )
         checks[-1]["worst_at_t"] = worst_sx_t
     else:
         checks.append(check("sigma_x_analytic", False, None, "no time steps", "Pa"))
@@ -265,12 +314,11 @@ def main():
 
     evidence = {
         "analytic": "1D slab Fourier cosine series (Robin h at x=±a) + clamped-bar "
-                    "σ_x=-E·α·(⟨T⟩-Tref) uniform",
+        "σ_x=-E·α·(⟨T⟩-Tref) uniform",
         "geometry": "3D cube (differs from ETM1 coaxial cylinder)",
         "times": [t for t, _ in times],
     }
-    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out,
-                       evidence=evidence)
+    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out, evidence=evidence)
 
 
 if __name__ == "__main__":

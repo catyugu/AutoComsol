@@ -62,18 +62,22 @@ Q1 = SIGMA1 * (V0 / L) ** 2  # 内芯均匀焦耳热 W/m^3
 # ---- 温度解析解 ----
 def T_core(r):
     """内芯温度（含源抛物线）。"""
-    return (TINF
-            + Q1 * R1 * R1 / (2 * R2 * H)
-            + Q1 * R1 * R1 / (2 * K2) * math.log(R2 / R1)
-            + Q1 * (R1 * R1 - np.asarray(r, float) ** 2) / (4 * K1))
+    return (
+        TINF
+        + Q1 * R1 * R1 / (2 * R2 * H)
+        + Q1 * R1 * R1 / (2 * K2) * math.log(R2 / R1)
+        + Q1 * (R1 * R1 - np.asarray(r, float) ** 2) / (4 * K1)
+    )
 
 
 def T_shell(r):
     """外壳温度（无源对数）。"""
     r = np.asarray(r, float)
-    return (TINF
-            + Q1 * R1 * R1 / (2 * R2 * H)
-            + Q1 * R1 * R1 / (2 * K2) * np.log(R2 / np.maximum(r, 1e-9)))
+    return (
+        TINF
+        + Q1 * R1 * R1 / (2 * R2 * H)
+        + Q1 * R1 * R1 / (2 * K2) * np.log(R2 / np.maximum(r, 1e-9))
+    )
 
 
 def T_analytic(r):
@@ -154,8 +158,15 @@ def main():
             vdevs.append(abs(row[vcol] - V0 * (row[2] + 0.5) / L))
     if vdevs:
         vmax = max(vdevs)
-        checks.append(check("V_linear_core", vmax < 1e-3, vmax,
-                            "max|V-V0(z+0.5)/L| < 1e-3 V (core)", "V"))
+        checks.append(
+            check(
+                "V_linear_core",
+                vmax < 1e-3,
+                vmax,
+                "max|V-V0(z+0.5)/L| < 1e-3 V (core)",
+                "V",
+            )
+        )
     else:
         checks.append(check("V_linear_core", False, None, "no core samples", "V"))
 
@@ -164,8 +175,15 @@ def main():
     if mid_rows:
         tdevs = [abs(row[tcol] - T_analytic(r_of(row[0], row[1]))) for row in mid_rows]
         tmax = max(tdevs)
-        checks.append(check("T_profile", tmax < 3.0, tmax,
-                            "max|T-T_analytic(r)| < 3 K (mid-plane)", "K"))
+        checks.append(
+            check(
+                "T_profile",
+                tmax < 3.0,
+                tmax,
+                "max|T-T_analytic(r)| < 3 K (mid-plane)",
+                "K",
+            )
+        )
     else:
         checks.append(check("T_profile", False, None, "no mid-plane samples", "K"))
 
@@ -200,35 +218,67 @@ def main():
         dev_z = np.max(np.abs(fem_sz - sigz))
         # 应力量级参考 (σ_z 量级): 取 σ_z 解析 max
         ref = max(1.0, np.max(np.abs(sigz)))
-        checks.append(check("stress_sr", dev_r < 0.15 * ref, float(dev_r),
-                            f"max|sx-σ_r| < 15% of σ_z scale", "Pa"))
-        checks.append(check("stress_st", dev_t < 0.15 * ref, float(dev_t),
-                            f"max|sy-σ_θ| < 15% of σ_z scale", "Pa"))
-        checks.append(check("stress_sz", dev_z < 0.15 * ref, float(dev_z),
-                            f"max|sz-σ_z| < 15% of σ_z scale", "Pa"))
+        checks.append(
+            check(
+                "stress_sr",
+                dev_r < 0.15 * ref,
+                float(dev_r),
+                f"max|sx-σ_r| < 15% of σ_z scale",
+                "Pa",
+            )
+        )
+        checks.append(
+            check(
+                "stress_st",
+                dev_t < 0.15 * ref,
+                float(dev_t),
+                f"max|sy-σ_θ| < 15% of σ_z scale",
+                "Pa",
+            )
+        )
+        checks.append(
+            check(
+                "stress_sz",
+                dev_z < 0.15 * ref,
+                float(dev_z),
+                f"max|sz-σ_z| < 15% of σ_z scale",
+                "Pa",
+            )
+        )
 
         # 物理守恒: 外壁 σ_r≈0 (自由壁)
-        wall = [row for row in mid_rows
-                if abs(row[1]) < 0.03 and r_of(row[0], row[1]) > R2 - 0.03 and abs(row[0]) > 0.1]
+        wall = [
+            row
+            for row in mid_rows
+            if abs(row[1]) < 0.03
+            and r_of(row[0], row[1]) > R2 - 0.03
+            and abs(row[0]) > 0.1
+        ]
         if wall:
             sr_wall = 0.0
             for row in wall:
                 theta = math.atan2(row[1], row[0])
                 ct, st = math.cos(theta), math.sin(theta)
                 sr_wall = max(sr_wall, abs(row[sx] * ct * ct + row[sy] * st * st))
-            checks.append(check("sr_wall_zero", sr_wall < 0.05 * ref, float(sr_wall),
-                                "max|σ_r| at free outer wall < 5% of σ_z scale", "Pa"))
+            checks.append(
+                check(
+                    "sr_wall_zero",
+                    sr_wall < 0.05 * ref,
+                    float(sr_wall),
+                    "max|σ_r| at free outer wall < 5% of σ_z scale",
+                    "Pa",
+                )
+            )
     else:
         for nm in ("stress_sr", "stress_st", "stress_sz", "sr_wall_zero"):
             checks.append(check(nm, False, None, "no y=0 mid-plane samples", "Pa"))
 
     evidence = {
         "analytic": "E,nu-equal two-material generalized plane strain (ε_z=0): "
-                    "σ_r/σθ/σz from piecewise α·ΔT integral",
+        "σ_r/σθ/σz from piecewise α·ΔT integral",
         "constraint": "Roller uz=0 top+bottom, RigidMotionSuppression radial",
     }
-    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out,
-                       evidence=evidence)
+    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out, evidence=evidence)
 
 
 if __name__ == "__main__":

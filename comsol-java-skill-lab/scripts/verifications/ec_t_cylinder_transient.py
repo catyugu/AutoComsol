@@ -165,8 +165,9 @@ def main():
 
     xyz, times = parse_columns(headers)
     if not times:
-        checks.append(check("time_columns", False, None,
-                            "no '@ t=' columns found", "s"))
+        checks.append(
+            check("time_columns", False, None, "no '@ t=' columns found", "s")
+        )
         return emit_report(CASE_KEY, csv_path, checks, json_out, md_out)
     print(f"detected {len(times)} time steps: {[t for t, _, _ in times]}")
 
@@ -176,16 +177,20 @@ def main():
         for row in rows:
             vdevs.append(abs(row[vc] - (row[2] + 0.5)))
     vmax = max(vdevs)
-    checks.append(check("V_linear", vmax < 1e-3, vmax,
-                        "max|V-(z+0.5)| < 1e-3 V (all times)", "V"))
+    checks.append(
+        check("V_linear", vmax < 1e-3, vmax, "max|V-(z+0.5)| < 1e-3 V (all times)", "V")
+    )
 
     # ---- transient_profile: 中平面 (r,t) 对解析解 ----
     worst_by_t = {}
     for t, vc, tc in times:
-        mids = [(r_of(row[0], row[1]), row[tc]) for row in rows
-                if abs(row[2]) < 0.02          # 中平面 z≈0
-                and r_of(row[0], row[1]) > 0.03  # 远离轴心(避免 r=0 奇异)
-                and R - r_of(row[0], row[1]) > 0.03]  # 远离侧壁
+        mids = [
+            (r_of(row[0], row[1]), row[tc])
+            for row in rows
+            if abs(row[2]) < 0.02  # 中平面 z≈0
+            and r_of(row[0], row[1]) > 0.03  # 远离轴心(避免 r=0 奇异)
+            and R - r_of(row[0], row[1]) > 0.03
+        ]  # 远离侧壁
         if not mids:
             continue
         devs = [abs(T - T_analytic(r, t)) for r, T in mids]
@@ -193,27 +198,46 @@ def main():
     if worst_by_t:
         worst_t = max(worst_by_t, key=lambda k: worst_by_t[k])
         worst = float(worst_by_t[worst_t])
-        checks.append(check("transient_profile", worst < 3.0, worst,
-                            "max|T(r,t)-analytic| < 3 K (mid-plane)", "K"))
+        checks.append(
+            check(
+                "transient_profile",
+                worst < 3.0,
+                worst,
+                "max|T(r,t)-analytic| < 3 K (mid-plane)",
+                "K",
+            )
+        )
         checks[-1]["worst_at_t"] = worst_t
     else:
-        checks.append(check("transient_profile", False, None,
-                            "no mid-plane samples", "K"))
+        checks.append(
+            check("transient_profile", False, None, "no mid-plane samples", "K")
+        )
 
     # ---- steady_analytic: 末时刻中平面 ≈ 解析 T(r,tmax) ----
     last_t = max(times, key=lambda e: e[0])
     t_last, vc_last, tc_last = last_t
-    mids = [(r_of(row[0], row[1]), row[tc_last]) for row in rows
-            if abs(row[2]) < 0.02
-            and r_of(row[0], row[1]) > 0.03
-            and R - r_of(row[0], row[1]) > 0.03]
+    mids = [
+        (r_of(row[0], row[1]), row[tc_last])
+        for row in rows
+        if abs(row[2]) < 0.02
+        and r_of(row[0], row[1]) > 0.03
+        and R - r_of(row[0], row[1]) > 0.03
+    ]
     if mids:
         ssdev = max(float(abs(T - T_analytic(r, t_last))) for r, T in mids)
-        checks.append(check("steady_analytic", ssdev < 3.0, ssdev,
-                            f"max|T(r,t={t_last:.0f})-analytic| < 3 K", "K"))
+        checks.append(
+            check(
+                "steady_analytic",
+                ssdev < 3.0,
+                ssdev,
+                f"max|T(r,t={t_last:.0f})-analytic| < 3 K",
+                "K",
+            )
+        )
     else:
-        checks.append(check("steady_analytic", False, None,
-                            "no mid samples at last time", "K"))
+        checks.append(
+            check("steady_analytic", False, None, "no mid samples at last time", "K")
+        )
 
     # ---- symmetry: z 对称点温度一致 (顶/底绝热) ----
     sym_devs = []
@@ -227,16 +251,17 @@ def main():
                 sym_devs.append(max(vals) - min(vals))
     if sym_devs:
         smax = max(sym_devs)
-        checks.append(check("z_symmetry", smax < 0.5, smax,
-                            "max T asym across z=0 < 0.5 K", "K"))
+        checks.append(
+            check("z_symmetry", smax < 0.5, smax, "max T asym across z=0 < 0.5 K", "K")
+        )
     else:
-        checks.append(check("z_symmetry", False, None,
-                            "no paired z samples", "K"))
+        checks.append(check("z_symmetry", False, None, "no paired z samples", "K"))
 
-    evidence = {"analytic": "Uniform Joule source + Robin convection: "
-                            "T_s(r) parabola + J0 Bessel series"}
-    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out,
-                       evidence=evidence)
+    evidence = {
+        "analytic": "Uniform Joule source + Robin convection: "
+        "T_s(r) parabola + J0 Bessel series"
+    }
+    return emit_report(CASE_KEY, csv_path, checks, json_out, md_out, evidence=evidence)
 
 
 if __name__ == "__main__":

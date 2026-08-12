@@ -63,12 +63,18 @@ def in_busbar(x, y, z):
 def in_bolt(x, y, z):
     """三个贯穿螺栓圆柱体。"""
     # 竖直螺栓 cyl1: 沿x, 中心 (0.0975, -0.025, 0.05), r=0.006, x∈[0.085,0.11]
-    if abs(z - 0.05) < 0.006 and abs(y + 0.025) < 0.006 \
-            and (x - 0.0975) ** 2 + (y + 0.025) ** 2 < 0.006 ** 2 * 1.1:
+    if (
+        abs(z - 0.05) < 0.006
+        and abs(y + 0.025) < 0.006
+        and (x - 0.0975) ** 2 + (y + 0.025) ** 2 < 0.006**2 * 1.1
+    ):
         return True
     # 水平螺栓 cyl2: 沿z, 中心 (0.045, -0.0375, 0.0025), y 对称
     for yc in (-0.0375, -0.0125):
-        if abs(x - 0.045) < 0.006 and (y - yc) ** 2 + (z - 0.0025) ** 2 < 0.006 ** 2 * 1.1:
+        if (
+            abs(x - 0.045) < 0.006
+            and (y - yc) ** 2 + (z - 0.0025) ** 2 < 0.006**2 * 1.1
+        ):
             return True
     return False
 
@@ -94,25 +100,48 @@ def main():
 
     # ---- 1. V 范围 [0, Vtot] ----
     vmax, vmin = float(V.max()), float(V.min())
-    checks.append(check("V_range", vmin >= -1e-6 and vmax <= VTOT * 1.001 + 1e-6,
-                        [vmin, vmax], "V∈[0, Vtot]", "V"))
+    checks.append(
+        check(
+            "V_range",
+            vmin >= -1e-6 and vmax <= VTOT * 1.001 + 1e-6,
+            [vmin, vmax],
+            "V∈[0, Vtot]",
+            "V",
+        )
+    )
 
     # high 端 (cyl1 x=0.11 端面) V≈Vtot; ground 端 (cyl2/3 z=-0.01) V≈0
-    high = np.where((np.abs(x - 0.110) < 0.002) & (np.abs(z - 0.05) < 0.006) & (y < -0.01))[0]
+    high = np.where(
+        (np.abs(x - 0.110) < 0.002) & (np.abs(z - 0.05) < 0.006) & (y < -0.01)
+    )[0]
     ground = np.where((np.abs(z + 0.010) < 0.002) & (np.abs(x - 0.045) < 0.006))[0]
     if len(high) > 0 and len(ground) > 0:
         v_high = float(V[high].mean())
         v_gnd = float(V[ground].mean())
-        checks.append(check("V_high", abs(v_high - VTOT) < 0.001, v_high,
-                            "V at high bolt end ≈ Vtot", "V"))
-        checks.append(check("V_ground", abs(v_gnd) < 0.001, v_gnd,
-                            "V at ground bolt ends ≈ 0", "V"))
+        checks.append(
+            check(
+                "V_high",
+                abs(v_high - VTOT) < 0.001,
+                v_high,
+                "V at high bolt end ≈ Vtot",
+                "V",
+            )
+        )
+        checks.append(
+            check(
+                "V_ground", abs(v_gnd) < 0.001, v_gnd, "V at ground bolt ends ≈ 0", "V"
+            )
+        )
     else:
         checks.append(check("V_high", False, None, "no high/ground samples", "V"))
         checks.append(check("V_ground", False, None, "no high/ground samples", "V"))
 
     # ---- 2. 电流路径: high 螺栓(小截面) J > 母线 J ----
-    cu = [i for i in range(len(rows)) if in_busbar(x[i], y[i], z[i]) and not in_bolt(x[i], y[i], z[i])]
+    cu = [
+        i
+        for i in range(len(rows))
+        if in_busbar(x[i], y[i], z[i]) and not in_bolt(x[i], y[i], z[i])
+    ]
     ti = [i for i in range(len(rows)) if in_bolt(x[i], y[i], z[i])]
     if len(cu) > 20 and len(ti) > 20:
         j_bus = float(np.median(normJ[cu]))
@@ -123,58 +152,107 @@ def main():
         # high 螺栓段电流密度: 圆柱穿过竖条处
         hi_bolt = [i for i in ti if np.abs(z[i] - 0.05) < 0.02 and x[i] > 0.09]
         j_hi_med = float(np.median(normJ[hi_bolt])) if hi_bolt else 0.0
-        checks.append(check("J_current_path", j_hi_med > j_bus_low * 0.5,
-                            [j_hi_med, j_bus_low],
-                            "high-bolt J >> busbar J (small section)", "A/m^2"))
-        checks.append(check("J_positive", j_bolt_hi > 1e3, j_bolt_hi,
-                            "max J in bolts > 1e3 A/m^2", "A/m^2"))
+        checks.append(
+            check(
+                "J_current_path",
+                j_hi_med > j_bus_low * 0.5,
+                [j_hi_med, j_bus_low],
+                "high-bolt J >> busbar J (small section)",
+                "A/m^2",
+            )
+        )
+        checks.append(
+            check(
+                "J_positive",
+                j_bolt_hi > 1e3,
+                j_bolt_hi,
+                "max J in bolts > 1e3 A/m^2",
+                "A/m^2",
+            )
+        )
     else:
         checks.append(check("J_current_path", False, None, "no Cu/Ti samples", "A/m^2"))
         checks.append(check("J_positive", False, None, "no Cu/Ti samples", "A/m^2"))
 
     # ---- 3. 温升: T>T0 且合理量级 (数十 K) ----
     tmax, tmin = float(T.max()), float(T.min())
-    checks.append(check("T_above_T0", tmin >= T0 - 1.0 and tmax > T0, [tmin, tmax],
-                        "T>T0 everywhere, max rise positive", "K"))
-    checks.append(check("T_rise_reasonable", 1.0 < tmax - T0 < 100.0, tmax - T0,
-                        "max T rise in (1,100) K", "K"))
+    checks.append(
+        check(
+            "T_above_T0",
+            tmin >= T0 - 1.0 and tmax > T0,
+            [tmin, tmax],
+            "T>T0 everywhere, max rise positive",
+            "K",
+        )
+    )
+    checks.append(
+        check(
+            "T_rise_reasonable",
+            1.0 < tmax - T0 < 100.0,
+            tmax - T0,
+            "max T rise in (1,100) K",
+            "K",
+        )
+    )
 
     # ---- 4. 焦耳热: Qrh>0 且螺栓(Ti 高阻)处 > 母线 ----
     qrh_max = float(Qrh.max())
     qrh_min = float(Qrh.min())
-    checks.append(check("Qrh_nonneg", qrh_min >= 0, [qrh_min, qrh_max],
-                        "Qrh >= 0", "W/m^3"))
+    checks.append(
+        check("Qrh_nonneg", qrh_min >= 0, [qrh_min, qrh_max], "Qrh >= 0", "W/m^3")
+    )
     # Qrh = J·E = normJ²/σ 自洽 (在母线铜域, 电导率 5.998e7)
     if len(cu) > 20:
         # 采样母线点验证 Qrh ≈ normJ²/σ_Cu
         idx = cu[:50]
         j = normJ[idx]
-        qth = j ** 2 / SIGMA_CU
+        qth = j**2 / SIGMA_CU
         # Qrh 应 ≈ qth (相对量级, 允许采样偏差 50%)
         ratios = Qrh[idx] / np.maximum(qth, 1e-6)
         med_ratio = float(np.median(ratios))
-        checks.append(check("Qrh_selfconsistent", 0.5 < med_ratio < 2.0, med_ratio,
-                            "Qrh ≈ normJ²/σ_Cu (median ratio)", "ratio"))
+        checks.append(
+            check(
+                "Qrh_selfconsistent",
+                0.5 < med_ratio < 2.0,
+                med_ratio,
+                "Qrh ≈ normJ²/σ_Cu (median ratio)",
+                "ratio",
+            )
+        )
 
     # ---- 5. 固定约束: 螺栓外端面位移≈0 ----
     # 固定端面: cyl1 x=0.11 与 cyl2/3 z=-0.01 圆盘
-    fixed_mask = ((np.abs(x - 0.110) < 0.001) & (np.abs(z - 0.05) < 0.01)) | \
-                 ((np.abs(z + 0.010) < 0.001) & (np.abs(x - 0.045) < 0.01))
+    fixed_mask = ((np.abs(x - 0.110) < 0.001) & (np.abs(z - 0.05) < 0.01)) | (
+        (np.abs(z + 0.010) < 0.001) & (np.abs(x - 0.045) < 0.01)
+    )
     fixed_pts = np.where(fixed_mask & (y < -0.01))[0]
     if len(fixed_pts) > 0:
         d_fixed = float(np.max(disp[fixed_pts]))
-        checks.append(check("fixed_disp_zero", d_fixed < 1e-6, d_fixed,
-                            "max disp at fixed bolt ends < 1e-6 m", "m"))
+        checks.append(
+            check(
+                "fixed_disp_zero",
+                d_fixed < 1e-6,
+                d_fixed,
+                "max disp at fixed bolt ends < 1e-6 m",
+                "m",
+            )
+        )
     else:
-        checks.append(check("fixed_disp_zero", False, None, "no fixed-end samples", "m"))
+        checks.append(
+            check("fixed_disp_zero", False, None, "no fixed-end samples", "m")
+        )
 
     # ---- 6. 位移/应力量级 ----
     d_max = float(disp.max())
-    checks.append(check("disp_scale", 1e-6 < d_max < 1e-3, d_max,
-                        "max disp in (1e-6, 1e-3) m", "m"))
+    checks.append(
+        check(
+            "disp_scale", 1e-6 < d_max < 1e-3, d_max, "max disp in (1e-6, 1e-3) m", "m"
+        )
+    )
     mises_max = float(mises.max())
-    checks.append(check("mises_scale", mises_max < 1e9, mises_max,
-                        "max von Mises < 1 GPa", "Pa"))
+    checks.append(
+        check("mises_scale", mises_max < 1e9, mises_max, "max von Mises < 1 GPa", "Pa")
+    )
 
     evidence = {
         "geometry": "L-shape busbar (Cu) + 3 through bolts (Ti, outer-side only), Form Union 7 domains",
@@ -182,8 +260,8 @@ def main():
         "thermal": "convection h=5 W/(m^2*K) to T0=293.15K on all external surfaces",
         "mech": "Fixed (u=v=w=0) on 3 bolt outer ends",
         "fields": f"V∈[{vmin:.4g},{vmax:.4g}]V, T∈[{tmin:.4g},{tmax:.4g}]K, "
-                  f"Jmax={float(normJ.max()):.3g} A/m^2, Qrhmax={qrh_max:.3g} W/m^3, "
-                  f"dispmax={d_max:.3g} m, misesmax={mises_max:.3g} Pa",
+        f"Jmax={float(normJ.max()):.3g} A/m^2, Qrhmax={qrh_max:.3g} W/m^3, "
+        f"dispmax={d_max:.3g} m, misesmax={mises_max:.3g} Pa",
     }
     return emit_report(CASE_KEY, csv_path, checks, json_out, md_out, evidence=evidence)
 

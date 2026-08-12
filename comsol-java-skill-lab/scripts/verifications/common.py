@@ -27,8 +27,9 @@ def _looks_like_header(line):
     表头特征: 首字段为坐标名 x/y/X/Y（大小写不敏感），或行内含 '@ t='。
     """
     first = line[0].strip().lower()
-    return first in ("x", "y", "z", "x (m)", "y (m)", "z (m)", "t") or \
-        any("@ t=" in cell for cell in line)
+    return first in ("x", "y", "z", "x (m)", "y (m)", "z (m)", "t") or any(
+        "@ t=" in cell for cell in line
+    )
 
 
 def load_csv(path):
