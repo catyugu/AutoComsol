@@ -364,3 +364,37 @@
 - 产物: runs/ectsm_busbar/, src/EcTSmBusbarStationary.java, scripts/verifications/ec_tsm_busbar_stationary.py
 - 回归: E1/T1/M1/T2/ET1/ET2/EcTSmCyl/EcTSmCube 全部 PASS
 - **用户纠错**: 螺栓仅向外侧伸出 2*tbb (原实现两端都伸出 → 10域; 修正为单侧 → 7域, 与任务书一致)
+
+### 2026-08-12 emw 电磁波频域案例 (EmwSlab 单频 + 扫频) — PASS（RF 模块里程碑）
+
+- 用户要求: 基于 demo12.java (emw 可重构超表面) 写简单案例, 演示 **emw (电磁波, 频域)** 仿真,
+  频域电磁场接口命名 **Emw**
+- **案例 1 EmwSlabFrequency**: 3D 介质平板垂直入射单频 (PASS)
+- **案例 2 EmwSlabSweepFrequency**: 同几何, 扫频 2-3 GHz (PASS)
+- **几何**: 周期单元 (period=10mm) 空气盒 + 居中介质板 (n_slab=2, t=6mm), Form Union intbnd → 3 域
+- **物理**: emw + wee1 (WaveEquationElectric, DisplacementFieldModel=RefractiveIndex) +
+  2 Periodic 端口 (PortType=Periodic, PECBacked, ForwardPort, InputType=E, Eampl={0,1,0}, n=n_air) +
+  2 Floquet PeriodicCondition (FromPeriodicPort)
+- **本机 API 证据 (新)**:
+  - `physics().create("emw","ElectromagneticWaves","geom1")` 后 **wee1 自动创建** (手动 create 报 already exists)
+  - Periodic 端口设置 (fresnel_equations.mph dmodel.xml 实证): SlitType=PECBacked, PortOrientation=ForwardPort,
+    InputType=E, Eampl, n, alpha1_inc, Pin=1[W], PortExcitation on/off
+  - Floquet PeriodicCondition: PeriodicType=Floquet, Floquet_source=FromPeriodicPort, kFloquet={0,0,0}
+  - Freq 研究步: create("freq","Frequency") + set plist/punit + createAutoSequences("freq") + study.run()
+  - S 参数: emw.S11/emw.S21 (复数), emw.S11dB/emw.S21dB
+  - 1D Global 图 Plot 导出 CSV: 表达式主序 (先全部 S11 频点, 再全部 S21 频点)
+- **关键调试历程 (重要教训)**:
+  1. `getAdj(2,3)` 的面编号顺序与 getUpDown/faceX 不一致 → 邻接数不可用 → 改纯几何面心分类 (确定性)
+  2. **缺 IdenticalMesh → Floquet 周期条件失效 → 均匀介质也虚假反射 S11≈-7.7dB**!
+     必须 `mesh.create("id1","IdenticalMesh")` + `selection("group1")`/`selection("group2")`
+     命名组选周期对面 (普通 selection().set 报 "Entity has no selection")
+  3. `dataset().create("dpt1","CutPoint")` 报 "Operation cannot be created" → 用 1D Plot 导出最干净
+  4. Data 导出在 3D 解数据集上展开成逐网格点×频率巨表 → 扫频用 Plot 导出
+- **验证 (解析 Fabry-Pérot 无损平板)**:
+  - 单频 2.45GHz: COMSOL S11dB=-8.0091 (解析 -8.0091), S21dB=-0.7477 (解析 -0.7477), 功率守恒 1.0000
+  - 扫频 2-3 GHz (11 点): 最大 |ΔS11dB|=4.8e-7, |ΔS21dB|=1.0e-7 (逐频点精确), 守恒 3e-15
+  - 趋势: |S11| 随频率单调增大 (电厚度增大) ✓
+- 产物: src/EmwSlabFrequency.java, src/EmwSlabSweepFrequency.java,
+  scripts/verifications/emw_slab_frequency.py + emw_slab_sweep_frequency.py,
+  runs/emw_slab_frequency/, runs/emw_slab_sweep/
+- 案例 3 (lumped element 可重构单元) 暂缓 — 用户指示后续再做
