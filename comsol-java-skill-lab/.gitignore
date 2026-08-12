@@ -1,0 +1,22 @@
+# 编译产物
+*.class
+*.stdout.log
+*.stderr.log
+
+# 运行输出
+runs/
+models/
+logs/
+build/
+exports/
+
+# 临时调查
+scratch/
+
+# skill 打包输出
+skill-output/
+skill.zip
+
+# Python
+__pycache__/
+*.pyc

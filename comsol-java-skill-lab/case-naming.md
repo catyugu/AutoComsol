@@ -1,0 +1,34 @@
+# Case 命名规则与物理场映射
+
+## 命名规则
+
+`<物理场缩略名><模型概述><Study类型>`
+
+- 物理场缩略名: 见下表
+- 模型概述: 几何/现象描述, 首字母大写 (如 Square, Cylinder, Cube, ThickCylinder)
+- Study类型: Stationary / Transient / Eigenfrequency / Frequency 等, 首字母大写
+
+示例:
+
+- `EcSquareStationary` — 2D 方板导电稳态
+- `TCylinderStationary` — 3D 空心圆柱传热稳态
+- `SmCylinderAxialStationary` — 3D 空心圆柱轴向拉伸稳态
+- `EcTCubeTransient` — 3D 立方体电热耦合瞬态
+- `TRingTransient` — 2D 圆环传热瞬态（对流 BC）
+- `EcTCylinderTransient` — 3D 圆柱电热耦合瞬态
+- `EcTCylinderStationary` — 3D 同轴双材料电热耦合稳态（焦耳热源 + 全对流）
+- `EcTSmCylinderStationary` — 3D 同轴双材料稳态电→热→结构耦合（广义平面应变热应力）
+- `EcTSmCubeTransient` — 3D 立方体瞬态电→热→结构耦合（1D slab 傅里叶级数 + 夹紧杆）
+- `EcTSmBusbarStationary` — 3D L形铜母线+钛螺栓稳态电→热→结构耦合（贯穿螺栓仅外侧伸出, 三场, 7域）
+
+## 接口 feature / 材料 / 变量 映射速查
+
+| 物理场 | 域特征 tag                      | 材料属性                            | 关键变量                       |
+| ------ | ------------------------------- | ----------------------------------- | ------------------------------ |
+| Es     | ccn1 (ChargeConservation)       | epsilonr                            | V, es.normE                    |
+| Ec     | cucn1 (CurrentConservation)     | electricconductivity                | V, ec.normJ                    |
+| T      | solid1 (SolidHeatTransferModel) | thermalconductivity                 | T                              |
+| Sm     | lemm1 (Linear Elastic Material) | E, nu (lemm1 直接设)                | solid.mises, solid.disp        |
+| EcT    | emh1 (ElectromagneticHeating)   | —                                   | V, T                           |
+| TSm    | te1 (ThermalExpansion)          | thermalexpansioncoefficient (9分量) | solid.sx/sy/sz, solid.T/Tref   |
+| EcTSm  | emh1 (Ec→T) + te1 (T→Sm)        | materialModel("Enu") E/nu           | V, T, ec.Qrh, solid.disp/mises |
