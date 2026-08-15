@@ -1,6 +1,6 @@
 ---
 name: autocomsol
-description: Design, write, and validate new COMSOL Multiphysics Java models intended for comsolcompile and comsolbatch. Use when creating or modifying a COMSOL Java simulation, selecting COMSOL physics APIs, geometry entities, materials, studies, multiphysics couplings, exports, or numerical acceptance checks. Consult the bundled locally validated Java cases and evidence documents before using nontrivial COMSOL APIs.
+description: Design, write, and validate new COMSOL Multiphysics Java models intended for comsolcompile and comsolbatch. Use when creating or modifying a COMSOL Java simulation, selecting COMSOL physics APIs (electric currents, electrostatics, heat transfer, solid mechanics, electric-thermal-structural couplings, frequency-domain electromagnetic waves), geometry entities, materials, studies, multiphysics couplings, exports, or numerical acceptance checks. Consult the bundled locally validated Java cases and evidence documents before using nontrivial COMSOL APIs.
 ---
 
 # AutoCOMSOL
@@ -21,13 +21,11 @@ Create a new COMSOL Java simulation from a user requirement. Treat the bundled c
 
 ## Reference routing
 
-- Command syntax, Java version compatibility, and batch behavior: read `references/command-usage.md`.
-- Available local installation and module evidence: read `references/machine-profile.md` and `references/local-evidence-index.md`.
+- Command syntax and batch behavior: read `references/command-usage.md`.
 - Naming, interfaces, material properties, feature tags, and result variables: read `references/case-naming.md`.
 - Deterministic 2D/3D boundary, face, and domain selection: read `references/geometry-selection.md`.
-- API recipes by physics and coupling: read `references/physics-api-recipes.md`.
+- API recipes by physics and coupling, plus validated pitfalls and advanced geometry/material/mesh recipes: read `references/physics-api-recipes.md`.
 - Acceptance-check strategy: read `references/verification-guidelines.md`.
-- Detailed experiment evidence and failures: search `references/lab-notebook.md` with a physics tag, API name, or error message.
 
 ## Selection rules
 

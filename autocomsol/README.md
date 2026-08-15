@@ -25,9 +25,9 @@ Clone the repository into the parent directory of your choosing, then run the lo
 ## What it provides
 
 - A workflow for turning a simulation requirement into a distinct Java model, batch run, export contract, and model-specific numerical checks.
-- Locally evidenced COMSOL Java API patterns for electric currents, heat transfer, solid mechanics, electric-thermal coupling, and electric-thermal-structural coupling.
+- Locally evidenced COMSOL Java API patterns for electric currents, electrostatics, heat transfer, solid mechanics, electric-thermal and electric-thermal-structural couplings, and frequency-domain electromagnetic waves (emw).
 - Deterministic 2D and 3D geometry-selection methods, so models do not depend on guessed boundary, face, or domain numbers.
-- Ten complete Java references, including stationary, transient, multiphysics, multi-material, and complex busbar cases.
+- Twelve complete Java references, including stationary, transient, multiphysics, multi-material, complex busbar, and periodic EM-wave cases.
 
 ## Use
 
@@ -47,11 +47,11 @@ autocomsol/
 ├── agents/openai.yaml       # Codex UI metadata
 └── references/
     ├── examples/            # Complete Java API references
-    ├── command-usage.md     # comsolcompile/comsolbatch evidence
+    ├── command-usage.md     # comsolcompile/comsolbatch usage
+    ├── case-naming.md       # Naming and physics/materials/variables mapping
     ├── geometry-selection.md
-    ├── physics-api-recipes.md
-    ├── verification-guidelines.md
-    └── lab-notebook.md      # Detailed local experiment evidence
+    ├── physics-api-recipes.md  # Validated recipes, pitfalls, advanced patterns
+    └── verification-guidelines.md
 ```
 
 ## Scope

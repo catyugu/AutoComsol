@@ -23,3 +23,11 @@ Call `faceParamRange(face)` before `faceX`. Use the midpoint of each returned pa
 - Combine adjacency with face samples or domain-level geometric measures to classify materials and contacts.
 
 Read `examples/EcTCylinderStationary.java` for core/shell identification, and `examples/EcTSmBusbarStationary.java` for exterior-face and bolt-end identification.
+
+## Ordering caveat
+
+Face numbering is not consistently ordered across `getAdj(2, 3)`, `getUpDown()`, and
+`faceX()` enumeration. On some geometries the adjacency array can disagree with the face
+samples (validated on the emw slab). When the two conflict, classify faces by their
+sampled face-center coordinates instead of by adjacency counts — do not trust either
+ordering to match physics selection numbering.

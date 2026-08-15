@@ -10,5 +10,40 @@ Use these as local COMSOL 6.2 evidence. Read the linked full Java case before ap
 | Solid mechanics | `SolidMechanics` | Use `Fixed`, `Roller`, and `BoundaryLoad`; configure `lemm1` elastic properties deliberately. | `examples/SmCylinderAxialStationary.java` |
 | Electric to thermal | `multiphysics().create(..., "ElectromagneticHeating")` | Set `EMHeat_physics` and `Heat_physics`; use `multiphysics()`, not `coupling()`. | `examples/EcTCylinderTransient.java` |
 | Thermal to structural | `multiphysics().create(..., "ThermalExpansion")` | Select all intended domains explicitly; thermal expansion is `thermalexpansioncoefficient`. | `examples/EcTSmCylinderStationary.java` |
+| EM waves, freq domain | `ElectromagneticWaves` (emw) | Periodic `Port` (PortType=Periodic, SlitType=PECBacked, PortOrientation=ForwardPort, InputType=E, Eampl, n, alpha1_inc) + `PeriodicCondition` Floquet/FromPeriodicPort; `WaveEquationElectric` wee1 auto-created, DisplacementFieldModel=RefractiveIndex; **IdenticalMesh group1/group2** for periodic face pairs (required for Floquet); Freq study step plist+punit; S 参数 emw.S11/S21 (emw.S11dB/S21dB). | `examples/EmwSlabFrequency.java` |
 
-For exact feature tags, properties, study creation, datasets, and exports, use `case-naming.md`, then inspect the full reference code. Search `lab-notebook.md` for a failed alternative before substituting an unverified name.
+For exact feature tags, properties, study creation, datasets, and exports, use `case-naming.md`, then inspect the full reference code.
+
+## Common pitfalls (validated)
+
+Interface and feature names deviate from the common-sense defaults:
+
+- `ElectricCurrents` → `ConductiveMedia` (electric currents); `Electrostatics` for electrostatics.
+- `HeatTransferInSolids` → `HeatTransfer` (pure solid heat transfer).
+- Boundary features are `TemperatureBoundary` / `HeatFluxBoundary`, not `Temperature` / `HeatFlux`.
+- The transient study step is `Transient`, not `TimeDependent`.
+- Couplings are created via `multiphysics().create(...)`, not `coupling()`.
+
+Selections, materials, and naming:
+
+- A voltage terminal needs explicit `TerminalType="Voltage"`; otherwise the terminal defaults to charge type and the solve returns a trivial field.
+- Global parameter names must not collide with a physics feature name (a colliding parameter resolves to 0).
+- Material properties: `electricconductivity`, `thermalconductivity`, `density`, `heatcapacity`, `relpermittivity`, and `thermalexpansioncoefficient` (a 9-component vector).
+- `ThermalExpansion` must be given an explicit selection of all intended domains; otherwise it selects none and stresses vanish.
+- With `ConductiveMedia`, `CurrentConservation` needs `relpermittivity` as well as conductivity.
+- Domain numbering after a `Difference` is not intuitive — derive entity numbers from geometry probing instead of assuming.
+
+Runtime behavior:
+
+- `model.save()` without a path fails ("No filename given.") — always save with `save(path)`.
+- `Square.size` is a scalar (side length), not a vector.
+- `EvalGlobal` evaluates global expressions only; a domain quantity must be exported as data.
+- On a transient PARDISO timeout, reduce the mesh and the number of time steps rather than raising the limit.
+
+## Advanced recipes (geometry / material / mesh)
+
+- **WorkPlane nested 2D**: `geom("geom1").create("wp1","WorkPlane")`, set `quickplane` (e.g. `"xz"`), then build the 2D sequence on `feature("wp1").geom()`. Fillet vertex selection targets objects with a `(1)` suffix (e.g. `selection("point").set("dif1(1)", new int[]{3})`). Extrude input: `selection("input").set(new String[]{"wp1"})`.
+- **`Enu` material model**: `material.materialModel().create("Enu", "YoungsModulusAndPoissonsRatio")` then `propertyGroup("Enu").set("E", ...)`. With multiple materials, `lemm1` reads `E_mat=from_mat` from the material.
+- **Local mesh refinement**: create `FreeTet` (`mesh("mesh1").create("ftet1","FreeTet")`), then a child `Size` on a domain selection with `size.selection().geom("geom1", 3).set(int[])` — the geometry and dimension are required (`selection().set(int[])` alone fails with "No entity dimension specified").
+
+Search the reference examples before substituting an unverified interface or property name.

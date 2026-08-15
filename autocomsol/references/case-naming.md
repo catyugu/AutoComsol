@@ -20,6 +20,8 @@
 - `EcTSmCylinderStationary` — 3D 同轴双材料稳态电→热→结构耦合（广义平面应变热应力）
 - `EcTSmCubeTransient` — 3D 立方体瞬态电→热→结构耦合（1D slab 傅里叶级数 + 夹紧杆）
 - `EcTSmBusbarStationary` — 3D L形铜母线+钛螺栓稳态电→热→结构耦合（贯穿螺栓仅外侧伸出, 三场, 7域）
+- `EmwSlabFrequency` — 3D 介质平板频域电磁波 (emw) 垂直入射单频（Periodic 端口 + Floquet 周期, S11/S21）
+- `EmwSlabSweepFrequency` — 3D 介质平板频域电磁波 (emw) 垂直入射扫频（2-3 GHz, S 参数随频率）
 
 ## 接口 feature / 材料 / 变量 映射速查
 
@@ -32,3 +34,4 @@
 | EcT    | emh1 (ElectromagneticHeating)   | —                                   | V, T                           |
 | TSm    | te1 (ThermalExpansion)          | thermalexpansioncoefficient (9分量) | solid.sx/sy/sz, solid.T/Tref   |
 | EcTSm  | emh1 (Ec→T) + te1 (T→Sm)        | materialModel("Enu") E/nu           | V, T, ec.Qrh, solid.disp/mises |
+| Emw    | wee1 (WaveEquationElectric)     | RefractiveIndex (n)                 | emw.S11/S21, emw.S11dB/S21dB   |
