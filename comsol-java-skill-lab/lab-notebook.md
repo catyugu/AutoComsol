@@ -450,3 +450,18 @@
   - 两案例均重跑验证: compile rc=0 + batch rc=0 + 数值与归档几乎一致 (T 场 maxdiff < 0.01K)
 - **skill 同步**: 两案例 Java 复制进 autocomsol/references/examples/, case-naming.md 补命名映射,
   physics-api-recipes.md 补 Revolve 旋转体 + 非线性材料配方, geometry-selection.md 补 Revolve 曲面采样坑
+
+### 2026-08-15 目录结构分 tier 重构 — analytic / physical
+
+- 用户要求: 把有解析解验证的案例与无解析解、仅验证流程可运行性/大体物理合理性的案例分开存放
+- **tier 划分**:
+  - `analytic/` (12 个): 有解析解验证 (EcSquare, TCylinder, SmCylinderAxial, TRing, EcTCylinder[Stat/Trans],
+    EcTSmCylinder, EcTSmCube, TRevolve, TmSlab, EmwSlab[Freq/Sweep])
+  - `physical/` (2 个): 仅流程/物理合理性 (EcTSmBusbarStationary, BaselineModel)
+- **目录同步** (三处同构):
+  - lab: `src/{analytic,physical}/`, `scripts/verifications/{analytic,physical}/` (common.py 留原位, 子目录脚本上溯两级 import)
+  - skill: `autocomsol/references/examples/{analytic,physical}/` 从 src 逐字节重新同步 (消除既有漂移)
+- **脚本适配**: run.py 新增 SRC_TIERS 定位/编译; health_check REGISTRY 值加 tier 前缀;
+  验证脚本 docstring `src/<tier>/Xxx.java`; Java javadoc 脚本路径加 tier (顺带修正 TRingTransient 过期名 verify_t2_ring_transient → t_ring_transient)
+- **文档**: SKILL.md/README.md/physics-api-recipes.md/geometry-selection.md/verification-guidelines.md/case-naming.md(两处)/AGENTS.md 同步 tier 说明
+- **附带修正**: emw 两案例 (EmwSlabFrequency/EmwSlabSweep) 此前未注册进 health_check REGISTRY (历史缺口), 本次一并补入 (实验键 EmwSlabFrequency/EmwSlabSweep)

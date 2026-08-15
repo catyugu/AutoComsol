@@ -27,7 +27,7 @@ Clone the repository into the parent directory of your choosing, then run the lo
 - A workflow for turning a simulation requirement into a distinct Java model, batch run, export contract, and model-specific numerical checks.
 - Locally evidenced COMSOL Java API patterns for electric currents, electrostatics, heat transfer, solid mechanics, electric-thermal and electric-thermal-structural couplings, and frequency-domain electromagnetic waves (emw).
 - Deterministic 2D and 3D geometry-selection methods, so models do not depend on guessed boundary, face, or domain numbers.
-- Twelve complete Java references, including stationary, transient, multiphysics, multi-material, complex busbar, and periodic EM-wave cases.
+- Fourteen complete Java references split into two tiers: `examples/analytic/` (twelve cases with analytical-solution verification) and `examples/physical/` (two cases verified by flow-runnability or physical reasonableness only), including stationary, transient, multiphysics, multi-material, complex busbar, periodic EM-wave, Revolve-geometry, and nonlinear-material cases.
 
 ## Use
 
@@ -46,9 +46,11 @@ autocomsol/
 ├── SKILL.md                 # Trigger metadata and workflow
 ├── agents/openai.yaml       # Codex UI metadata
 └── references/
-    ├── examples/            # Complete Java API references
+    ├── examples/
+    │   ├── analytic/        # 12 个有解析解验证的 Java 参考
+    │   └── physical/        # 2 个仅流程/物理合理性的 Java 参考
     ├── command-usage.md     # comsolcompile/comsolbatch usage
-    ├── case-naming.md       # Naming and physics/materials/variables mapping
+    ├── case-naming.md       # Naming, tier placement, physics/materials/variables mapping
     ├── geometry-selection.md
     ├── physics-api-recipes.md  # Validated recipes, pitfalls, advanced patterns
     └── verification-guidelines.md

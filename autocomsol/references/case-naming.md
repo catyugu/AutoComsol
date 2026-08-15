@@ -8,6 +8,13 @@
 - 模型概述: 几何/现象描述, 首字母大写 (如 Square, Cylinder, Cube, ThickCylinder)
 - Study类型: Stationary / Transient / Eigenfrequency / Frequency 等, 首字母大写
 
+## Tier 分层
+
+案例按验证严谨度分两层，对应 `references/examples/` 下的子目录与 lab 的 `src/`、`scripts/verifications/` 同构:
+
+- **analytic/** — 有解析解验证的案例（验证脚本含显式解析解）。新案例尽量进入此层。
+- **physical/** — 无解析解、仅验证流程可运行性或大体物理合理性的案例（如母线板 `EcTSmBusbarStationary`、编译基线 `BaselineModel`）。
+
 示例:
 
 - `EcSquareStationary` — 2D 方板导电稳态
@@ -19,7 +26,7 @@
 - `EcTCylinderStationary` — 3D 同轴双材料电热耦合稳态（焦耳热源 + 全对流）
 - `EcTSmCylinderStationary` — 3D 同轴双材料稳态电→热→结构耦合（广义平面应变热应力）
 - `EcTSmCubeTransient` — 3D 立方体瞬态电→热→结构耦合（1D slab 傅里叶级数 + 夹紧杆）
-- `EcTSmBusbarStationary` — 3D L形铜母线+钛螺栓稳态电→热→结构耦合（贯穿螺栓仅外侧伸出, 三场, 7域）
+- `EcTSmBusbarStationary` — 3D L形铜母线+钛螺栓稳态电→热→结构耦合（贯穿螺栓仅外侧伸出, 三场, 7域）【physical tier】
 - `EmwSlabFrequency` — 3D 介质平板频域电磁波 (emw) 垂直入射单频（Periodic 端口 + Floquet 周期, S11/S21）
 - `EmwSlabSweepFrequency` — 3D 介质平板频域电磁波 (emw) 垂直入射扫频（2-3 GHz, S 参数随频率）
 - `TRevolveStationary` — 3D 双层圆环稳态传热（Revolve 旋转体 + 双材料, 内 Dirichlet 外 Robin, 对数解析解）

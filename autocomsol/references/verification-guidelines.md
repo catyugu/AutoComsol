@@ -2,6 +2,24 @@
 
 Define acceptance criteria while designing the model, before a batch run.
 
+## Verification tiers
+
+Cases are split into two tiers by verification strictness, mirrored by the
+`examples/analytic` and `examples/physical` directories and by the lab's
+`src/` / `scripts/verifications/` layout:
+
+- **analytic** — the reference solution is an analytical one (closed-form
+  temperature/potential/stress field, Bessel/Fourier series, variable
+  transform, Fabry-Pérot S-parameters, ...). This is the preferred tier: it
+  gives the strongest independent check. Place a new case here whenever an
+  analytical solution is available.
+- **physical** — no analytical solution is available (complex geometry such as
+  the busbar, or a pure build baseline). Acceptance then rests on flow
+  runnability plus physical-reasonableness checks: imposed boundary values,
+  field ranges, symmetry, conservation, constitutive identities, and mesh
+  convergence. Place the case here only when an analytical check is not
+  feasible.
+
 ## Prefer independent checks
 
 1. Compare with an analytical solution when the geometry and boundary conditions allow it.

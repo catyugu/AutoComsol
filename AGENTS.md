@@ -10,3 +10,10 @@
 - `comsol-java-skill-lab` 目录下是用于试验的各类模型 Java 代码和详细的经验、日志文档等。
 - `autocomsol` 目录下是成品发布的 skill。
 - `playground` 作为尚不稳定的实验进行的地方。
+
+## 目录分层约定
+
+- 案例按验证严谨度分两层（`src/`、`scripts/verifications/`、`autocomsol/references/examples/` 下均同构）:
+  - `analytic/` — 有解析解验证的案例
+  - `physical/` — 无解析解、仅流程可运行/物理合理性的案例
+- 有解析解的案例进 analytic 层；无解析解时才进 physical 层。

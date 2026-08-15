@@ -22,7 +22,7 @@ Call `faceParamRange(face)` before `faceX`. Use the midpoint of each returned pa
 - `geom.getAdj(2, 3)` identifies face/domain adjacency: one adjacent domain indicates an exterior face, two indicate an interior interface.
 - Combine adjacency with face samples or domain-level geometric measures to classify materials and contacts.
 
-Read `examples/EcTCylinderStationary.java` for core/shell identification, and `examples/EcTSmBusbarStationary.java` for exterior-face and bolt-end identification.
+Read `examples/analytic/EcTCylinderStationary.java` for core/shell identification, and `examples/physical/EcTSmBusbarStationary.java` for exterior-face and bolt-end identification.
 
 ## Ordering caveat
 

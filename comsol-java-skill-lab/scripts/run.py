@@ -2,7 +2,7 @@
 """
 run.py — COMSOL Java 实验封装（跨平台）
 用法:
-    python run.py compile <class-name>              # 编译 src/<class>.java
+    python run.py compile <class-name>              # 编译 src/{analytic,physical}/<class>.java
     python run.py run <class-name> <run-dir> [args...]   # 批处理运行
     python run.py all <class-name> <run-dir> [args...]   # 编译+运行
 
@@ -13,6 +13,10 @@ run.py — COMSOL Java 实验封装（跨平台）
 - 每个运行写入独立目录（run-dir），输出 stdout/stderr/batch.log/status.json
 - 严格检查: 编译产物存在、批处理退出码、日志错误标志
 - status.json 记录 compile_rc/batch_rc/mph_exists/log_flags
+
+tier 结构:
+- src/analytic/  有解析解验证的案例
+- src/physical/  仅流程可运行/物理合理性的案例
 """
 import json
 import os
@@ -25,6 +29,8 @@ from pathlib import Path
 SRC_DIR = Path(__file__).resolve().parent.parent / "src"
 BUILD_DIR = Path(__file__).resolve().parent.parent / "build" / "classes"
 TIMEOUT_SEC = 600  # 默认单次求解超时（秒）
+# 源码按验证 tier 分层; 编译时合并编译全部 tier（共享辅助类自动包含）
+SRC_TIERS = [SRC_DIR / "analytic", SRC_DIR / "physical"]
 
 
 def find_bin(name):
@@ -46,8 +52,17 @@ def get_comsol_commands():
     return comp, batch
 
 
+def locate_source(class_name):
+    """在 tier 子目录中定位 <class>.java；找不到返回 None。"""
+    for tier in SRC_TIERS:
+        p = tier / f"{class_name}.java"
+        if p.exists():
+            return p
+    return None
+
+
 def compile_java(class_name, cwd=None):
-    """编译 src/<class>.java（含共享辅助类）。
+    """编译 src/<tier>/<class>.java（含共享辅助类）。
 
     关键: 必须用 COMSOL 自带 javac（或 comsolcompile），因为系统 JDK(23)
     编译的 class 是 v67，comsolbatch 内置 JRE(Java11) 只识别到 v55。
@@ -56,9 +71,13 @@ def compile_java(class_name, cwd=None):
     策略: 用 COMSOL 自带 javac 编译 src 下所有 .java（共享辅助类自动包含），
     输出 .class 到 build/classes/。若自带 javac 不存在则回退 comsolcompile。
     """
-    src = SRC_DIR / f"{class_name}.java"
-    if not src.exists():
-        print(f"ERROR: source not found: {src}", file=sys.stderr)
+    src = locate_source(class_name)
+    if src is None:
+        tiers = " ".join(str(t) for t in SRC_TIERS)
+        print(
+            f"ERROR: source not found in {tiers}: {class_name}.java",
+            file=sys.stderr,
+        )
         sys.exit(2)
     BUILD_DIR.mkdir(parents=True, exist_ok=True)
     out = BUILD_DIR / f"{class_name}.compile.stdout.log"
@@ -88,7 +107,7 @@ def compile_java(class_name, cwd=None):
             candidates = sorted(plugins.glob("com.comsol.api_*.jar"))
             api_jar = candidates[0] if candidates else None
 
-    all_sources = sorted(SRC_DIR.glob("*.java"))
+    all_sources = sorted(p for tier in SRC_TIERS for p in tier.glob("*.java"))
     if comsol_javac:
         cmd = [str(comsol_javac), "-encoding", "UTF-8"]
         if api_jar and api_jar.exists():
@@ -100,7 +119,7 @@ def compile_java(class_name, cwd=None):
         rc = 0
         for s in all_sources:
             p = subprocess.run(
-                [comp, str(s)], cwd=cwd or SRC_DIR, capture_output=True, text=True
+                [comp, str(s)], cwd=cwd or s.parent, capture_output=True, text=True
             )
             out.write_text(p.stdout, encoding="utf-8")
             err.write_text(p.stderr, encoding="utf-8")

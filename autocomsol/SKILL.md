@@ -11,7 +11,7 @@ Create a new COMSOL Java simulation from a user requirement. Treat the bundled c
 
 1. Translate the request into geometry, materials, physics, boundary conditions, study type, outputs, and acceptance criteria.
 2. Read `references/case-naming.md` and choose a compliant new case name.
-3. Select the closest complete Java reference from `references/examples/`; read the whole file before reusing its nontrivial API patterns.
+3. Select the closest complete Java reference from `references/examples/analytic/` (verified API patterns) or `references/examples/physical/` (flow / geometry patterns); read the whole file before reusing its nontrivial API patterns.
 4. Read the applicable reference below before implementing unfamiliar API calls.
 5. Create a new Java model. Preserve proven patterns, but adapt parameters, geometry, selections, materials, studies, exports, and checks to the requested problem.
 6. Specify an output contract: Java `main` receives an MPH path as its first argument and a CSV path as its second argument. Save and export to those paths.
@@ -22,10 +22,10 @@ Create a new COMSOL Java simulation from a user requirement. Treat the bundled c
 ## Reference routing
 
 - Command syntax and batch behavior: read `references/command-usage.md`.
-- Naming, interfaces, material properties, feature tags, and result variables: read `references/case-naming.md`.
+- Naming, tier placement, interfaces, material properties, feature tags, and result variables: read `references/case-naming.md`.
 - Deterministic 2D/3D boundary, face, and domain selection: read `references/geometry-selection.md`.
 - API recipes by physics and coupling, plus validated pitfalls and advanced geometry/material/mesh recipes: read `references/physics-api-recipes.md`.
-- Acceptance-check strategy: read `references/verification-guidelines.md`.
+- Acceptance-check strategy, including the distinction between analytic and physical-reasonableness verification: read `references/verification-guidelines.md`.
 
 ## Selection rules
 
@@ -44,5 +44,6 @@ Prefer an analytical solution. If none is suitable, combine independent checks s
 
 - Do not invent COMSOL interface names, feature IDs, property names, or coupling tags. Find local evidence or run a minimal probe first.
 - Do not alter a reference case merely to satisfy a new request; create a distinct case.
+- Place a new case with an analytical-solution check in `references/examples/analytic/`; place a case without an analytical solution (flow-runnability or physical-reasonableness only) in `references/examples/physical/`.
 - Do not embed executable wrappers, installation paths, or runtime dependencies in this skill.
 - Keep full Java references intact. Their value is that they are known-good, complete API examples.
