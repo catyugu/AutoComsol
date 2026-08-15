@@ -2,8 +2,10 @@
 """
 ec_square_stationary.py — 实验 E1: 2D 方板导电稳态 验证
 
-解析解: V=0.5-x（线性），normE=1 V/m。
-列约定: x,y,V,normE。
+解析解: V=0.5-x（线性），E=1 V/m，J=σE=5.998e7 A/m²（σ=5.998e7 S/m 均匀）。
+列约定: x,y,V,ec.normJ。
+注意: 物理场是 ConductiveMedia（导电），场量是电流密度 ec.normJ；J=σE=5.998e7 A/m²
+（历史修复: 原检查量名 normE/期望 1 与导出列 ec.normJ 不符）。
 
 用法:
     python ec_square_stationary.py <csv-path> <json-out> <md-out>
@@ -50,16 +52,16 @@ def main():
         check("V_linearity", maxdev < 1e-3, maxdev, "max|V-(0.5-x)| < 1e-3 V", "V")
     )
 
-    # normE ≈ 1 V/m
+    # normJ ≈ 5.998e7 A/m² (J = σE, σ=5.998e7 S/m, E=1 V/m)
     es = [r[3] for r in rows if len(r) >= 4]
     emean = sum(es) / len(es) if es else None
     checks.append(
         check(
-            "normE_value",
-            emean is not None and abs(emean - 1.0) < 0.05,
+            "normJ_value",
+            emean is not None and abs(emean - 5.998e7) < 0.05 * 5.998e7,
             emean,
-            "|mean(normE)-1| < 0.05 V/m",
-            "V/m",
+            "|mean(ec.normJ)-5.998e7| < 5% A/m^2",
+            "A/m^2",
         )
     )
 

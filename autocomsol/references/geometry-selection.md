@@ -39,3 +39,17 @@ Surfaces produced by `Revolve` may have a non-rectangular parameter domain: a sa
 (validated on `TRevolveStationary`). When sampling many points across a face, wrap
 `faceX` in try/catch and skip out-of-range samples rather than letting one point abort
 the whole classification pass.
+
+## Arrays and booleans change entity numbering
+
+- `Array` (and any boolean that partitions or replicates solids) creates **multiple
+  disjoint bodies**; `Union` with `intbnd="on"` merges them into connected domains while
+  keeping internal boundaries. Entity numbering after these steps is never intuitive —
+  probe `GeomInfo` (faces by sampled center coordinate, domains by bounding-box volume)
+  exactly as for any other geometry (validated on `TFinArrayStationary`,
+  `SmPlateHoleStationary`).
+- A symmetric load case is modeled with `Roller` on the symmetry faces; the roller
+  selection comes from sampled face coordinates, and the stress singularity at the
+  curved-hole/roller junction (and at the load-edge/symmetry junction) is confined to a
+  small boundary layer — exclude it from the verification clean zone
+  (validated on `SmPlateHoleStationary`).

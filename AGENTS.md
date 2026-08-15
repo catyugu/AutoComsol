@@ -17,3 +17,12 @@
   - `analytic/` — 有解析解验证的案例
   - `physical/` — 无解析解、仅流程可运行/物理合理性的案例
 - 有解析解的案例进 analytic 层；无解析解时才进 physical 层。
+
+## 回归与探针纪律
+
+- 全案例回归用 `python scripts/run.py sweep`（复用 `scripts/health_check.py` 的 REGISTRY 为单一事实源，
+  逐键 编译→运行→健康检查→聚合 `runs/aggregate-summary.json/md`；支持 `--keys/--skip-pass`）。
+  新增案例三处同步后，必须 `run.py sweep` 全回归通过。
+- 任何未经验证的新 COMSOL API 字符串，先按 `autocomsol/references/api-validation-probes.md` 验证
+  （jar 类清单 / 挖掘官方 .mph / 临时探针），再写进正式案例；探针类不入库。
+- 验证脚本用 `.venv/Scripts/python.exe` 运行（依赖 numpy）。

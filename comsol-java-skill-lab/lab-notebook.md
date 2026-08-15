@@ -482,3 +482,90 @@
   故 top_disp 只做量级合理性检查, 不苛求精确端点
 - **验证**: 5 项全 PASS; 回归 TRevolve/TmSlab/EcTSmBusbar/EmwSlabFrequency 全 PASS
 - 产物: src/analytic/SmCylinderAxialStationary.java(导出改), scripts/verifications/analytic/sm_cylinder_axial_stationary.py(重写), runs/smcyl_recovered/
+
+### 2026-08-16 方向深化批 0 — 工具链 + 探针协议（几何深度/物理扩展/后处理工程化的前置）
+
+- 用户选定深化方向: 1) 几何深度(布尔链/阵列/镜像/STEP), 3) 物理扩展(辐射/共轭传热/磁场/EMW完整化/模态),
+  4) 后处理+工程化(派生值/绘图+PNG/全回归)。跳过方向2(网格/求解器)。
+- **run.py 新增 `sweep` 子命令**: 复用 health_check.py 的 REGISTRY 做单一事实源,
+  `python scripts/run.py sweep [--keys K1,K2] [--skip-pass] [--runs-root DIR]`。
+  流程: 一次编译全部 src → 逐键 run_batch 到 runs/、<key、>/ → health_check.py → 聚合
+  runs/aggregate-summary.json/md。编译失败即返回1; 单案例失败隔离。已单测: 未知键拒绝/汇总写入 OK。
+- **新增探针协议文档** autocomsol/references/api-validation-probes.md: jar 类清单法 +
+  挖掘官方 .mph dmodel.xml + 临时 ApiProbes 探针类三步法; 含降级规则(Array→N复制+Union 等)。
+- **挖掘官方模型证据** (local-evidence-index.md 新增 §16):
+  - 几何 `op="Array"` (p:type=linear): forced_air_cooling_with_heat_sink.mph 散热片官方模型
+  - 研究 `op="Eigenfrequency"`: ladder_frame.mph 等 12 个结构官方模型
+  - 派生值 `op="Average"`/`AvSurface`; 绘图组 PlotGroup1D/2D/3D
+  - 导出 ImageExport 接口类在 api jar; geommesh jar 有 OpArray/OpMirror/OpMove/OpRotate 无 OpPattern
+    → 用 Array 不用 Pattern
+
+### 2026-08-16 批 1 探针实证 — Array/PG3D/Image/AvVolume 全部 OK（临时探针类，不入库）
+
+- **探针方法验证** (api-validation-probes.md 落地): 写临时 ApiProbes scratch 类,
+  `python scripts/run.py all ApiProbes <run-dir> <mph> <png>` 一次编译+运行, 结果:
+  - ARRAY_OK: `geom().create("arr1","Array")` + `selection("input")` + `set("size",String[])` +
+    `set("displ",String[])` 可用; Array 产生多个不相交块 → **必须接 Union 合并** (intbnd=on)。
+  - PG3D_OK: `result().create("pg3","PlotGroup3D")` + `create("surf1","Surface")` + `set("expr",...)`。
+    **3D 模型必须用 PlotGroup3D; PlotGroup2D 报 Invalid_dataset_type** (需 2D 数据集)。
+  - IMAGE_MIN_OK: `export().create("img1","Image")` + `set("plotgroup","pg3")` +
+    `set("filename",绝对路径)` → 真实 PNG (魔数 \x89PNG, 2.6MB)。**坑1: size/width/height 属性
+    报 Invalid_property_value → 省略用默认**; **坑2: 相对路径报 Failed_to_create_directory →
+    必须绝对路径**; **坑3: args 必须显式传足 (args[0]=mph, args[1]=png), 否则 model.save() 把
+    模型 zip 写到 png 路径**。
+  - AVVOL_OK: `numerical().create("av1","AvVolume")` + `set("data","dset1")` + `set("expr",...)` +
+    `run()` + `getReal()` → double[][]。探针类不入库, 证据记此 + local-evidence-index §18。
+- 产: runs/api_probes/ (已删), src/analytic/ApiProbes.java (已删)
+
+### 2026-08-16 批 1 案例 B TFinArrayStationary — Array 散热片 + 方向4载荷 (PASS)
+
+- 几何: 基板(0.05×0.02×0.005) + 5 翅(0.001×0.02×0.10, **Array** 阵列 x 间距 0.0075) + Union(intbnd=on)。
+- 物理: HeatTransfer, 基板底 z=0 定温 350K, 其余外表面对流 h=25→293K, k=200 全域。
+- **参数名坑 (实测)**: 全局参数名 "h" 与 COMSOL 内置变量冲突 →
+  "Duplicate parameter/variable name. Variable: h" → 改名 h_conv/k_fin。**与既有坑一致:
+  参数名不得与物理 feature 名/内置变量重名**。
+- **解析验证 (孤立翅 1D cosh)**: m=16.202, mL=1.62, Bi_c=6.25e-5 (低 Bi 设计满足)。
+  θ_b 用 FE 根部平面拟合 (56.1K) 不硬编码 → 只测廓线形状比。
+  - profile_cosh: 逐点 max 相对偏差 **0.38%** (clean zone 距根 3t 至尖 5t)
+  - tip_ratio: 0.3796 vs 解析 0.379 (θ_tip/θ_b)
+  - root_fit/monotone/av_temperature 全 PASS
+- **方向 4 载荷**:
+  - PlotGroup3D+Surface 温度图 + Image PNG 导出 OK (探针已验证)
+  - **AvVolume 派生值坑 (实测)**: numerical("av1","AvVolume") 节点创建/序列化正常,
+    但 batch 上下文 getReal() 返回空表 [[0.0]] (computeResult()/getReal(true) 均无效);
+    Global 图求空间场变量 T 报 "Undefined variable comp1.T/ht.T" (S-参数是全局标量, T 是场量)。
+    → 结论: 保留 AvVolume 节点作 API 模式演示, 体积平均由验证脚本从 field.csv 计算 (326.6K)。
+- 验证: 5 项全 PASS; 产物 runs/t_fin_array/{field.csv, TFinArray.mph, TFinArray.png, health.*}
+
+### 2026-08-16 批 1 案例 C SmCantileverEigenfrequency — 方形截面悬臂梁模态 (PASS)
+
+- 几何: Block 悬臂梁 L=1.5, 方形截面 b=h=0.1 (L/h=15), 一端 Fixed。
+- 材料: E=200GPa, nu=0.3, rho=7850。显式网格 FreeTet+Size hmax=0.035 (≈b/3)。
+- 研究: **Eigenfrequency** (新字符串, 挖掘 ladder_frame.mph 证 op="Eigenfrequency", 4 模态)。
+- **neigsactive 坑 (实测)**: 需 "on"/"off" 不是 "log" → "Invalid property value ... 'on','off'"。
+- 频率经 Global 图 + Plot 导出 (EmwSlab 范式): expr={"freq"}, **xdataexpr=solnum 报 Undefined variable → 不设, 默认按模态序号**。
+- **位移变量坑 (实测)**: 模态位移导出需 "u","v","w" 无 solid. 前缀 (与 SmCylinder 一致);
+  solid.u 报 Undefined variable。
+- **load_csv 坑 (实测)**: Plot 导出无表头 → 首数据行被 common.py load_csv 误认作表头
+  (表头=["1","36.24..."])。验证脚本用 _looks_like_data 回补首行。
+- **验证 (欧拉-伯努利, 方形截面退化对)**: f1=36.24 Hz (EB 36.19, βL=1.8751), f2=222.6 Hz
+  (EB 227.1, βL=4.6941)。形状识别: 模态1 主 z 向 (w), 模态2 主 y 向 (v) → 正交退化对 ✓
+  (梁沿 x, 截面 y-z, 弯曲模态在 v/w 方向, 轴向 u 极小; 判断 |v| vs |w| 而非 |u| vs |v|)。
+- 验证: 4 项全 PASS; 产物 runs/sm_cant_eig/{freq.csv, modes.csv, SmCant.mph, health.*}
+
+### 2026-08-16 批 1 全回归 sweep — 14/16 PASS + 修复 E1 历史 bug + 2 个 OOM 环境问题
+
+- **修复 E1 历史 bug (ec_square_stationary.py)**: 源导出 ec.normJ (σE=5.998e7 A/m²)，
+  但验证脚本检查 normE/期望 1 V/m → 永久 FAIL。物理是 ConductiveMedia，场量是电流密度；
+  已改为检查 |mean(ec.normJ)-5.998e7| < 5% (J=σE, σ=5.998e7, E=1)。修复后 E1 PASS。
+- **run.py sweep 两处增强**: (1) key→class 映射 (key_to_class, camel-case + EcTSm 特例);
+  (2) 验证脚本用 .venv python (numpy 依赖); (3) SWEEP_EXTRA_ARGS 支持多 CSV/PNG 导出案例。
+- **全回归 14/16 PASS**: 全部既有 13 案例 + 3 新案例 (SmPlateHole/TFinArray/SmCantEig) 通过。
+- **2 个 OOM 环境问题 (非回归)**: EcTSmCylinderStationary (3场耦合稳态) 与
+  EcTSmCubeTransient (3场耦合瞬态) 报 "Out of memory during LU factorization"，
+  batch 内存峰值 427-513MB，系统内存压力下 LU 因子分配失败。两源 git diff 为空 (未被我改动)。
+  判定为环境内存压力导致的偶发 OOM，非代码回归。重试单案例看是否通过。
+
+- **OOM 复现确认**: EcTSmCylinderStationary 单独重试仍 OOM (50.8s, 同 "Out of memory during
+  LU factorization")。判定: comsolbatch.ini 固定 -Xmx2g, 3 场耦合 LU 分解超限, 稳定复现,
+  非偶发。已记入 machine-profile.md。两个重耦合案例在默认堆下无法过回归 (环境限制)。

@@ -113,3 +113,41 @@
 - **`getAdj(2,3)` 的面编号顺序与 getUpDown/faceX 的枚举不一致** (本几何): 邻接数无法用于外部面判定。
 - 改为纯几何法: 用 faceParamRange+faceX 采样面心, 按面心坐标分类
   (z=±H/2 端口, |x|=period/2 周期面, |y|=period/2 周期面) — 确定性且可靠。
+
+## 16. 几何/研究/派生值/绘图 官方字符串 (2026-08-16 挖掘 applications/ 证据)
+
+方法见 `autocomsol/references/api-validation-probes.md`。证据来自解包官方 .mph 的 dmodel.xml
+与 plugins jar 类清单:
+
+- 几何 op=`Array` (p:type="linear", p:size): `Heat_Transfer_Module/Applications/forced_air_cooling_with_heat_sink.mph`
+  (官方散热片模型, 用 Array 排布 4/7 个翅片)。**用 Array 不用 Pattern** (geommesh jar 无 OpPattern, 有 OpArray/OpMirror/OpMove/OpRotate)。
+- 研究 op=`Eigenfrequency` (StudyFeature tag="eig"; `s("eig") s("Eigenfrequency")`):
+  `Structural_Mechanics_Module/Beams_and_Shells/ladder_frame.mph` 等 12 个结构官方模型。
+- 派生值 op=`Average` / `AvSurface`: `Heat_Transfer_Module/Applications/concentric_tube_heat_exchanger.mph`,
+  `forced_air_cooling_with_heat_sink.mph`。
+- 绘图组 PlotGroup1D/2D/3D: 多个官方模型 (concentric_tube_heat_exchanger 全三型)。
+- 导出 ImageExport 接口类: `com.comsol.api_1.0.0.jar`; op="Image" 见 AppBuilderFeature
+  (concentric_tube_heat_exchanger.mph) — 导出类型字符串 (Java `export().create(tag,"Image")`)
+  待探针实证。
+
+## 17. run.py sweep 全回归 (2026-08-16 新增)
+
+- `python scripts/run.py sweep [--keys K1,K2] [--skip-pass] [--runs-root DIR]`
+- REGISTRY 单一事实源: run.py `from health_check import REGISTRY` 复用, 消除两处漂移。
+- 流程: 一次编译全部 src → 逐键 run_batch 到 runs/、<key、>/ → health_check.py → 聚合
+  aggregate-summary.json/md (runs/ 根)。--skip-pass 跳过上次已 PASS 的键。
+- 编译失败即返回 1 (不静默); 单案例失败隔离不中断。
+
+## 18. Array/PG3D/Image/AvVolume 探针实证 (2026-08-16, ApiProbes 临时探针)
+
+- `geom().create("arr1","Array")` + `selection("input").set({"blk1"})` +
+  `set("size",String[]{n1,n2,n3})` + `set("displ",String[]{dx,dy,dz})` — 可用。
+- **Array 产生多个不相交块 → 必须接 Union (intbnd=on) 合并成域**, 否则 SolidMechanics 刚体奇异。
+- `result().create("pg3","PlotGroup3D")` + `feature("surf1","Surface")` — 3D 模型用 PG3D;
+  PlotGroup2D 需 2D 数据集, 3D 上报 Invalid_dataset_type。
+- Image 导出: `export().create("img1","Image")` + `set("plotgroup","pg3")` +
+  `set("filename",<绝对路径>)` → 真实 PNG。**size/width/height 属性报 Invalid_property_value →
+  省略用默认**; **相对路径报 Failed_to_create_directory → 必须绝对路径**;
+  **args 必须显式传足 (args[0]=mph,args[1]=png)**。
+- 派生值: `numerical().create("av1","AvVolume")` + `set("data","dset1")` + `set("expr",...)` +
+  `run()` + `getReal()` → double[][]。

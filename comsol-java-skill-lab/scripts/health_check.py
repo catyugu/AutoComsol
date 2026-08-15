@@ -48,6 +48,9 @@ REGISTRY = {
     "TmSlab": "analytic/tm_slab_nonlinear.py",
     "EmwSlabFrequency": "analytic/emw_slab_frequency.py",
     "EmwSlabSweep": "analytic/emw_slab_sweep_frequency.py",
+    "SmPlateHole": "analytic/sm_plate_hole_stationary.py",
+    "TFinArray": "analytic/t_fin_array_stationary.py",
+    "SmCantEig": "analytic/sm_cantilever_eigenfrequency.py",
 }
 
 

@@ -31,6 +31,9 @@
 - `EmwSlabSweepFrequency` — 3D 介质平板频域电磁波 (emw) 垂直入射扫频（2-3 GHz, S 参数随频率）
 - `TRevolveStationary` — 3D 双层圆环稳态传热（Revolve 旋转体 + 双材料, 内 Dirichlet 外 Robin, 对数解析解）
 - `TmSlabNonlinear` — 3D 平板非线性导热稳态（k(T) 温度相关, 变量变换解析解）
+- `SmPlateHoleStationary` — 3D 中心圆孔张力板（3D Difference 布尔 + 对称 Roller, Kirsch Kt=3 应力集中）
+- `TFinArrayStationary` — 3D 基板+翅片散热片稳态传热（Array 阵列 + Union, 孤立翅 1D cosh 解析解; 附带 PlotGroup3D+Image PNG 导出与派生值演示）
+- `SmCantileverEigenfrequency` — 3D 方形截面悬臂梁特征频率（Eigenfrequency 研究, 欧拉-伯努利 f1/f2 退化对, 模态形状识别）
 
 ## 接口 feature / 材料 / 变量 映射速查
 

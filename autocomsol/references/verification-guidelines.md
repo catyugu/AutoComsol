@@ -27,6 +27,23 @@ Cases are split into two tiers by verification strictness, mirrored by the
 3. Check symmetry, conservation, and constitutive identities.
 4. For discretization-sensitive results, perform a mesh-convergence comparison.
 
+The analytic tier is not limited to uniform fields. It also covers, with documented
+approximations and a downgrade trigger:
+
+- **clean-zone pointwise comparison** against an analytic profile, with boundary layers
+  excluded (Saint-Venant end effects, hole-edge singularities, load-edge corners) —
+  validated on `SmCylinderAxialStationary`, `SmPlateHoleStationary`.
+- **shape-ratio comparison** where the FE base value is fitted rather than hardcoded,
+  so only the analytic profile is tested — validated on `TFinArrayStationary`
+  (isolated-fin cosh profile; θ_base fitted from the root plane). Explicit downgrade
+  trigger: if the shape mismatch exceeds ~15% even after low-Bi design, the case moves
+  to the physical tier (imposed-boundary + monotonicity + range checks only).
+- **degenerate-pair eigenvalue checks** with mode-shape identification (not mode-index
+  mapping): assert the two lowest eigenfrequencies equal the analytic fundamental
+  (square-section beam → orthogonal degenerate bending pair), and classify each mode's
+  displacement axis from the exported field rather than trusting solver ordering —
+  validated on `SmCantileverEigenfrequency` (Euler–Bernoulli f1/f2).
+
 ## Export deliberately
 
 - Export values valid for the selected dataset and entity dimension.

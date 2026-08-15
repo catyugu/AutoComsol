@@ -26,6 +26,7 @@ Create a new COMSOL Java simulation from a user requirement. Treat the bundled c
 - Deterministic 2D/3D boundary, face, and domain selection: read `references/geometry-selection.md`.
 - API recipes by physics and coupling, plus validated pitfalls and advanced geometry/material/mesh recipes: read `references/physics-api-recipes.md`.
 - Acceptance-check strategy, including the distinction between analytic and physical-reasonableness verification: read `references/verification-guidelines.md`.
+- Validating a new or unverified API string before committing it to a case: read `references/api-validation-probes.md`.
 
 ## Selection rules
 

@@ -34,6 +34,22 @@ comsolbatch -inputfile <compiled-class-or-mph> -outputfile <output.mph> \
 - `-outputfile <X>.mph` also writes `<X>_Model.mph` with the model tag appended.
 - `comsolbatch` runs in the foreground; output goes to stdout and the `-batchlog` file.
 
+## Full regression sweep (lab)
+
+The lab's `scripts/run.py` wraps compile+run+verify and can sweep every registered case:
+
+```bash
+python scripts/run.py sweep [--keys K1,K2] [--skip-pass] [--runs-root DIR]
+```
+
+- Compiles all `src/` sources once, runs each case to `runs/<key>/`, invokes the
+  case verification script, and aggregates the health reports into
+  `runs/aggregate-summary.json` + `aggregate-summary.md`.
+- The case list is the single `REGISTRY` in `scripts/health_check.py` — do not keep a
+  second copy elsewhere.
+- `--skip-pass` re-runs only keys whose last health report was not PASS.
+- Exit code 0 iff every case PASSes; a single failing case does not abort the sweep.
+
 ## Judging success
 
 A zero batch exit code alone is not validation. Require all of:
