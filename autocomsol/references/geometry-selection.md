@@ -31,3 +31,11 @@ Face numbering is not consistently ordered across `getAdj(2, 3)`, `getUpDown()`,
 samples (validated on the emw slab). When the two conflict, classify faces by their
 sampled face-center coordinates instead of by adjacency counts — do not trust either
 ordering to match physics selection numbering.
+
+## Curved / Revolve surfaces
+
+Surfaces produced by `Revolve` may have a non-rectangular parameter domain: a sampled
+`faceX` point can fall outside the domain and throw "Face parameter out of range"
+(validated on `TRevolveStationary`). When sampling many points across a face, wrap
+`faceX` in try/catch and skip out-of-range samples rather than letting one point abort
+the whole classification pass.

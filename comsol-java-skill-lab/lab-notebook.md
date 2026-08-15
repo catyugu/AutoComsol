@@ -398,3 +398,55 @@
   scripts/verifications/emw_slab_frequency.py + emw_slab_sweep_frequency.py,
   runs/emw_slab_frequency/, runs/emw_slab_sweep/
 - 案例 3 (lumped element 可重构单元) 暂缓 — 用户指示后续再做
+
+### 2026-08-15 TRevolve 双层圆环 Revolve 旋转体传热 — PASS（几何里程碑: Revolve）
+
+- 用户要求: 用 Revolve 旋转体几何做 3D 双层圆环稳态传热, 双材料, 解析解验证
+- **案例 TRevolveStationary**: 3D 双层圆环 (Revolve 旋转体)
+  - 几何: 两个 xz 工作平面各含一个矩形截面 (wp1: r∈[r_in,r_mid], wp2: r∈[r_mid,r_out], 厚度 t),
+    各自 Revolve 360° (angtype=full) 成中空圆柱壳, Union(intbnd=on) 合并 → 内环壳(A)+外环壳(B) 2 域
+  - 材料: 内环 kA=60, 外环 kB=30 (双材料, 热导率不同)
+  - 热: 内壁(r=r_in) Dirichlet T=T0=500K, 外壁(r=r_out) 对流 h=20→Tinf=293K (Robin),
+    环壳间界面(r=r_mid) 温度+热流连续, 端面绝热
+- **解析解** (双层圆环对数分布, 每层 T=A·ln(r)+B):
+  - 内环 T_A(r)=T0+(T_m-T0)·ln(r/r_in)/ln(r_mid/r_in); 外环 T_B(r)=T_m+(kA/kB)·A_A·ln(r/r_mid)
+  - 界面温度 T_m 由界面热流连续 + 外壁 Robin 解得: C=(kA/(kB·dA))·(kB/r_out+h·dB), T_m=(C·T0+h·Tinf)/(C+h)
+  - 实测 T(r_mid)=479.73 (解析 479.728)
+- **本机 API 证据 (新)**:
+  - **Revolve 旋转体**: geom.create("rev1","Revolve") + set("revolvefrom","workplane") +
+    set("workplane","wp1") + selection("input").set({"wp1"}) + set("angtype","full")
+  - **Revolve 是完整 3D 旋转体** (非扫掠): 2D 截面绕轴旋转 360°, 中空圆柱壳
+- **关键陷阱**:
+  - **detectCoreShellDomains 的 faceX 多点采样对 Revolve 曲面会抛 "Face parameter out of range"**
+    → 必须 try-catch 跳过越界采样点
+  - 域识别仍用 getUpDown()[1]+faceX 求各域最大半径: 最大半径最小者=内环 (同 EcTCylinderStationary)
+- **验证结果**: T_inner_wall=1e-13K, T_inner_zone=0.014K, T_outer_zone=0.029K,
+  interface_continuity=0.015K, radial_only=1.84K — PASS
+- 产物: src/TRevolveStationary.java, scripts/verifications/t_revolve_stationary.py, runs/t_revolve/
+
+### 2026-08-15 TmSlab 非线性导热 k(T) 变量变换解析解 — PASS（非线性材料里程碑）
+
+- 用户要求: 3D 平板非线性导热稳态, k(T) 温度相关, 变量变换解析解
+- **案例 TmSlabNonlinear**: 3D 立方体 (Block L=0.2m, 单域)
+  - 材料: 非线性热导率 k(T)=k0·(1+beta·(T-Tref)), beta=0.004[1/K] (材料属性直接引用 T)
+  - 热: x=-L/2 T=T1=600K, x=+L/2 T=T2=300K, 其余面绝热, 稳态 Stationary
+- **解析解 (变量变换法)**: k(T) 温度相关 → 引入 phi=T+beta·T²/2-beta·Tref·T, 则 d²phi/dx²=0 → phi 线性;
+  由两端 phi 值定 phi(x), 反解 T=(-a+sqrt(a²+2·beta·phi))/beta, a=1-beta·Tref
+  - 非线性中点 T_mid≈476.76K vs 线性解 450K → 分离 26.8K (非线性效果显著, 验证判据)
+- **本机 API 证据 (新)**:
+  - **非线性材料属性直接写表达式**: propertyGroup("def").set("thermalconductivity", "k0*(1+beta*(T-Tref))")
+    (非 String[][] 参数, 直接单字符串)
+- **验证结果**: T_profile=0.044K, T_nonlinear_effective 分离 26.76K, T_range=[300,600]K,
+  T_monotonic 左>右 — PASS
+- 产物: src/TmSlabNonlinear.java, scripts/verifications/tm_slab_nonlinear.py, runs/tm_slab/
+
+### 2026-08-15 补全 TRevolve / TmSlab 闭环 — 源码 + 验证脚本 + skill 同步
+
+- 用户要求: 把 t_revolve / tm_slab 两个案例补全闭环 (源码/验证脚本/台账/skill 同步)
+- **背景**: 两案例运行产物在 runs/ 且数值已 PASS, 但源码 src/*.java 与验证脚本缺失, 台账未记录
+- **补全内容**:
+  - src/TRevolveStationary.java + src/TmSlabNonlinear.java (按 API 调用序列重建, 数值与归档一致)
+  - scripts/verifications/t_revolve_stationary.py + tm_slab_nonlinear.py (解析解由归档 health.json 反推), 并入 health_check.py REGISTRY (TRevolve/TmSlab)
+  - 两案例均重跑验证: compile rc=0 + batch rc=0 + 数值与归档几乎一致 (T 场 maxdiff < 0.01K)
+- **skill 同步**: 两案例 Java 复制进 autocomsol/references/examples/, case-naming.md 补命名映射,
+  physics-api-recipes.md 补 Revolve 旋转体 + 非线性材料配方, geometry-selection.md 补 Revolve 曲面采样坑

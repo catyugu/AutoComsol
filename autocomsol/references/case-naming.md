@@ -22,6 +22,8 @@
 - `EcTSmBusbarStationary` — 3D L形铜母线+钛螺栓稳态电→热→结构耦合（贯穿螺栓仅外侧伸出, 三场, 7域）
 - `EmwSlabFrequency` — 3D 介质平板频域电磁波 (emw) 垂直入射单频（Periodic 端口 + Floquet 周期, S11/S21）
 - `EmwSlabSweepFrequency` — 3D 介质平板频域电磁波 (emw) 垂直入射扫频（2-3 GHz, S 参数随频率）
+- `TRevolveStationary` — 3D 双层圆环稳态传热（Revolve 旋转体 + 双材料, 内 Dirichlet 外 Robin, 对数解析解）
+- `TmSlabNonlinear` — 3D 平板非线性导热稳态（k(T) 温度相关, 变量变换解析解）
 
 ## 接口 feature / 材料 / 变量 映射速查
 

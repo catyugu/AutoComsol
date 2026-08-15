@@ -18,6 +18,8 @@ health_check.py — 健康度检查调度器（跨平台，纯 Python）
     EcTSmCyl ec_tsm_cylinder_stationary  3D 同轴双材料稳态电热力耦合
     EcTSmCube ec_tsm_cube_transient      3D 立方体瞬态电热力耦合
     EcTSmBusbar ec_tsm_busbar_stationary    铜母线+钛螺栓电热结构多物理场
+    TRevolve t_revolve_stationary       3D 双层圆环稳态传热 (Revolve 旋转体, 双材料)
+    TmSlab tm_slab_nonlinear            3D 平板非线性导热稳态 (k(T) 温度相关)
 """
 import os
 import subprocess
@@ -36,6 +38,8 @@ REGISTRY = {
     "EcTSmCyl": "ec_tsm_cylinder_stationary.py",
     "EcTSmCube": "ec_tsm_cube_transient.py",
     "EcTSmBusbar": "ec_tsm_busbar_stationary.py",
+    "TRevolve": "t_revolve_stationary.py",
+    "TmSlab": "tm_slab_nonlinear.py",
 }
 
 
