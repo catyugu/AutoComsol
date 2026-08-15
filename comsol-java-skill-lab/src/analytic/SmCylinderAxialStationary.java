@@ -69,7 +69,7 @@ public class SmCylinderAxialStationary {
         model.result().export("data1").set("data", "dset1");
         String csvOut = args.length > 1 ? args[1] : "SmCylinderAxialStationary.csv";
         model.result().export("data1").set("filename", csvOut);
-        model.result().export("data1").set("expr", new String[] {"solid.mises", "solid.disp"});
+        model.result().export("data1").set("expr", new String[] {"solid.mises", "solid.sz", "w"});
         model.result().export("data1").run();
         String outPath = args.length > 0 ? args[0] : "SmCylinderAxialStationary.mph";
         model.save(outPath);

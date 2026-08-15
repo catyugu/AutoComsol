@@ -465,3 +465,20 @@
   验证脚本 docstring `src/<tier>/Xxx.java`; Java javadoc 脚本路径加 tier (顺带修正 TRingTransient 过期名 verify_t2_ring_transient → t_ring_transient)
 - **文档**: SKILL.md/README.md/physics-api-recipes.md/geometry-selection.md/verification-guidelines.md/case-naming.md(两处)/AGENTS.md 同步 tier 说明
 - **附带修正**: emw 两案例 (EmwSlabFrequency/EmwSlabSweep) 此前未注册进 health_check REGISTRY (历史缺口), 本次一并补入 (实验键 EmwSlabFrequency/EmwSlabSweep)
+
+### 2026-08-16 M1 SmCylinderAxialStationary 验证升级 — 均值→逐点场对比
+
+- 用户要求: 把 M1 从"均值+宽容差(10%)"升级为"逐点场对比+窄容差", 达到 analytic 层应有严格度
+- **导出变更**: Java 导出表达式 solid.mises/solid.disp(幅值) → **solid.mises/solid.sz/solid.w**
+  (solid.w 未定义, 位移解变量是 w 不带 solid. 前缀; 幅值 disp 含径向收缩无法校验轴向)
+- **圣维南效应实测** (autoMeshSize=3): 下端 Fixed 在 z<0.2 段引入强扰动
+  (σ_z 下段 0.78e6~1.15e6, mises 下段显著低于 1e6), 仅上段 z∈[0.2,0.42] 严格趋于单轴解
+  → 逐点对比必须限定"上段 clean zone" (z∈[0.2,0.42], r∈(0.32,0.48))
+- **上段 clean zone 逐点实测**: σ_z max|σ_z-1e6|=1.08e4Pa(1.1%), mises-|σ_z| max=4.6e3Pa,
+  w 拟合斜率 5.009e-6(解析5e-6,偏0.19%), w 逐点线性 maxdev=1.06e-7m
+- **新检查 (5 项)**: sz_uniform(<2e4Pa), mises_eq_sz(<2e4Pa 单轴自洽),
+  w_linear(<1.2e-7m), w_slope(斜率∈[4.98e-6,5.02e-6]), top_disp(上端面自由端 w∈[4.3,5.3]e-6)
+- **关键认知**: 上端面是载荷自由端, w 略高于 clean zone 线性外推 4.6e-6 (实测 4.9e-6),
+  故 top_disp 只做量级合理性检查, 不苛求精确端点
+- **验证**: 5 项全 PASS; 回归 TRevolve/TmSlab/EcTSmBusbar/EmwSlabFrequency 全 PASS
+- 产物: src/analytic/SmCylinderAxialStationary.java(导出改), scripts/verifications/analytic/sm_cylinder_axial_stationary.py(重写), runs/smcyl_recovered/
