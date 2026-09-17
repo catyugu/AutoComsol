@@ -35,6 +35,7 @@
 - `TFinArrayStationary` — 3D 基板+翅片散热片稳态传热（Array 阵列 + Union, 孤立翅 1D cosh 解析解; 附带 PlotGroup3D+Image PNG 导出与派生值演示）
 - `SmCantileverEigenfrequency` — 3D 方形截面悬臂梁特征频率（Eigenfrequency 研究, 欧拉-伯努利 f1/f2 退化对, 模态形状识别）
 - `SmCantileverBendingStationary` — 2D 悬臂梁纯弯曲稳态（SolidMechanics p=2 二次 Lagrange, ShapeProperty.order_displacement, 解析 σ_xx=1.5y, 机器精度 3e-10; 高阶物理场离散阶次的直接验证）
+- `EcHollowCylinderStationary` — 3D 空心圆柱导电稳态（曲面几何 → 导出的 .mphtxt 是二阶几何单元 edg2/tri2/tet2, 边中点落在解析圆柱面上; 解析 V(r)=V0·ln(r/r_out)/ln(r_in/r_out)）
 
 ## 接口 feature / 材料 / 变量 映射速查
 

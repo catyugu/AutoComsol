@@ -27,7 +27,7 @@ Clone the repository into the parent directory of your choosing, then run the lo
 - A workflow for turning a simulation requirement into a distinct Java model, batch run, export contract, and model-specific numerical checks.
 - Locally evidenced COMSOL Java API patterns for electric currents, electrostatics, heat transfer, solid mechanics, electric-thermal and electric-thermal-structural couplings, and frequency-domain electromagnetic waves (emw).
 - Deterministic 2D and 3D geometry-selection methods, so models do not depend on guessed boundary, face, or domain numbers.
-- Seventeen complete Java references split into two tiers: `examples/analytic/` (fifteen cases with analytical-solution verification) and `examples/physical/` (two cases verified by flow-runnability or physical reasonableness only), including stationary, transient, eigenfrequency, multiphysics, multi-material, complex busbar, periodic EM-wave, Revolve-geometry, Array-pattern geometry, 3D-boolean hole geometry, and nonlinear-material cases.
+- Java references split into two tiers: `examples/analytic/` (cases with analytical-solution verification) and `examples/physical/` (cases verified by flow-runnability or physical reasonableness only), including stationary, transient, eigenfrequency, multiphysics, multi-material, complex busbar, periodic EM-wave, Revolve-geometry, Array-pattern geometry, 3D-boolean hole geometry, nonlinear-material, and second-order-geometry mesh-export cases.
 - A validated new-API-string probe protocol (`references/api-validation-probes.md`) for confirming unverified COMSOL strings against jar listings and serialized models before committing them to a case.
 
 ## Use

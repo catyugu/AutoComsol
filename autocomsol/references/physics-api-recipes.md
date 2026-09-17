@@ -18,6 +18,7 @@ Use these as local COMSOL 6.2 evidence. Read the linked full Java case before ap
 | Eigenfrequency study | `study("std1").create("eig","Eigenfrequency")` | `set("neigsactive","on")` + `set("neigs","4")`. Read mode frequencies via a `PlotGroup1D` `"Global"` plot of `freq` (no xdataexpr → default mode index x-axis) + `"Plot"` export. | `examples/analytic/SmCantileverEigenfrequency.java` |
 | Element order (p-refinement) | `physics().prop("ShapeProperty").set("order", "1/2/3/4")`; for SolidMechanics use `set("order_displacement", "1/2/3/4/2s/3s")` | COMSOL writes `<PhysicsProp tag="ShapeProperty"><param param="order_temperature" value="1\|1,'2'"/></PhysicsProp>` in `dmodel.xml` and the solver reports "Geometry shape function: Quadratic Lagrange". Higher p converges as O(h^(p+1)); quadratic Lagrange on a coarse mesh already reaches machine precision for bending stresses. | `examples/analytic/SmCantileverBendingStationary.java` |
 | PlotGroup3D surface plot + Image export | `result().create("pg3","PlotGroup3D")` + `export().create("img1","Image")` | Surface plot on a 3D model must use `PlotGroup3D` (a 2D plot group needs a 2D dataset). Image export needs an **absolute** filename path; do not set `size`/`width`/`height` (they reject). | `examples/analytic/TFinArrayStationary.java` |
+| Geometry shape order (P2 mesh export) | `component().sorder("automatic"/"linear"/"quadratic"/"cubic"/"quartic")` + `result().export().create(tag,"Mesh")` | Default is `automatic`. Curved geometry then exports **second-order geometry elements** (`edg2`/`tri2`/`tet2`, 3/6/10 nodes per element, mid nodes after the corners); `sorder("linear")` exports `edg`/`tri`/`tet`. Purely planar geometry stays linear even with `sorder("quadratic")`, and `cubic`/`quartic` still export P2 — the Mesh export caps at second order. | `examples/analytic/EcHollowCylinderStationary.java` |
 
 For exact feature tags, properties, study creation, datasets, and exports, use `case-naming.md`, then inspect the full reference code.
 
@@ -39,6 +40,7 @@ Selections, materials, and naming:
 - `ThermalExpansion` must be given an explicit selection of all intended domains; otherwise it selects none and stresses vanish.
 - With `ConductiveMedia`, `CurrentConservation` needs `relpermittivity` as well as conductivity.
 - Domain numbering after a `Difference` is not intuitive — derive entity numbers from geometry probing instead of assuming.
+- A boolean splits each original surface into several faces (a `Difference` of two cylinders leaves 4 patches per cylinder face). A boundary feature that selects only one patch covers a fraction of the intended boundary and the field is wrong by O(0.5) with **no error from COMSOL** — collect every face at the target radius (`facesAtRadius` returning `int[]`), never a single first match.
 
 Runtime behavior:
 
@@ -50,6 +52,8 @@ Runtime behavior:
 - SolidMechanics displacement variables are `u`, `v`, `w` — without a `solid.` prefix. Exporting `solid.u` fails with "Undefined variable" (validated on `SmCylinderAxialStationary` and `SmCantileverEigenfrequency`).
 - `neigsactive` on an Eigenfrequency study step takes `"on"`/`"off"`, not `"log"` (validated on `SmCantileverEigenfrequency`).
 - To set the Lagrange polynomial order on a physics (p-refinement), call `physics().prop("ShapeProperty").set("order", "1/2/3/4")`. For SolidMechanics the parameter name is `order_displacement` and accepted values are `"1"`, `"2"`, `"3"`, `"4"`, `"2s"`, `"3s"` (`s` suffix = serendipity); `"order"` on `SolidMechanics` is rejected (validated on `SmCantileverBendingStationary`).
+- Geometry shape order and physics order are two different knobs: `component().sorder(...)` controls the mesh geometry (hence the element order in an exported `.mphtxt`), while `physics().prop("ShapeProperty").set("order", ...)` controls the solution's degrees of freedom. Only the former changes the exported mesh. Numeric strings are rejected by `sorder` (`"2"` → "Invalid geometry shape function"); use `"linear"`/`"quadratic"`/`"cubic"`/`"quartic"`/`"automatic"` (validated on `EcHollowCylinderStationary`).
+- A `Mesh` export (`result().export().create(tag,"Mesh")`) **silently writes nothing** when the model has no solved dataset: `run()` raises no exception and no file appears. Run the study first (validated on `EcHollowCylinderStationary`).
 
 ## Advanced recipes (geometry / material / mesh)
 
@@ -59,5 +63,6 @@ Runtime behavior:
 - **Revolve curved-face sampling**: on surfaces produced by `Revolve`, `faceX` at a parameter point outside the (possibly non-rectangular) parameter domain throws "Face parameter out of range". Wrap multi-point `faceX` sampling in try/catch and skip out-of-range points (validated on `TRevolveStationary`).
 - **Nonlinear material expressions**: a material property such as `thermalconductivity` may be set to a single expression string referencing the dependent variable (`"k0*(1+beta*(T-Tref))"`). Match the analytical validation with a variable transform when the property is nonlinear in the dependent variable.
 - **Derived values in batch**: `result().numerical().create("av1","AvVolume")` builds and serializes correctly, but `getReal()` returns an empty table `[[0.0]]` in a batch context (even after `computeResult()`/`getReal(true)`). Compute domain averages offline from the exported field CSV instead; a `"Global"` plot also cannot evaluate a spatial field variable (only global scalars such as S-parameters).
+- **Reading an exported `.mphtxt`**: the vertex table follows `<n> # number of mesh vertices` + `# Mesh vertex coordinates`; each element block is `<npe> <name> # type name`, then `# number of vertices per element`, `# number of elements`, `# Elements` and one node-index line per element. Second-order mid nodes follow the corner nodes (`tri2`: corners 0,1,2 then the mids of edges (0,1),(1,2),(2,0)). Verified offline in `scripts/verifications/analytic/ec_hollow_cylinder_stationary.py`.
 
 Search the reference examples before substituting an unverified interface or property name.

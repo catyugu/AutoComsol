@@ -35,6 +35,7 @@ Never assume that a geometry entity number is stable. After geometry finalizatio
 
 - In 2D, use `edgeX` samples to classify edges by their coordinates.
 - On 3D faces, query `faceParamRange` before sampling with `faceX`; curved faces do not necessarily accept a `0.5` parameter.
+- A boolean splits an original surface into several faces (a cylinder difference leaves 4 patches per cylindrical face). Collect **every** face matching the target location, never a single first match: a partial boundary selection still solves and reports no error, but the field is wrong.
 - For multiple domains, use `getUpDown()` and/or `getAdj()` together with sampled geometry features.
 - Keep the detection logic private and local to the Java model unless a shared utility is explicitly needed.
 

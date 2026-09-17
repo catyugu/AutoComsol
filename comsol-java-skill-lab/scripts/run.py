@@ -242,6 +242,7 @@ def key_to_class(key):
 SWEEP_EXTRA_ARGS = {
     "TFinArray": ["TFinArray.png"],          # args[2] = 图像导出路径 (探针: 必须绝对)
     "SmCantEig": ["modes.csv"],              # args[2] = 模态位移导出路径
+    "EcHollowCyl": ["mesh.mphtxt"],          # args[2] = 网格导出路径 (验证脚本读同目录)
 }
 
 

@@ -151,3 +151,25 @@
   **args 必须显式传足 (args[0]=mph,args[1]=png)**。
 - 派生值: `numerical().create("av1","AvVolume")` + `set("data","dset1")` + `set("expr",...)` +
   `run()` + `getReal()` → double[][]。
+
+## 19. 二阶几何网格导出 (sorder + Mesh 导出, 2026-09-17)
+
+- API 字符串来源 (官方 .mph 的 action 历史挖掘, 方法见 api-validation-probes.md):
+  `<actions> ... t(s("/component/comp1")) m(s("sorder")) s("quadratic")</actions>` —
+  证据模型 7 个: `Acoustics_Module/Ultrasound/ultrasound_flow_meter_generic.mph` (quadratic)、
+  `ACDC_Module/Tutorials,_Coils/resonant_spiral_coil_3d.mph` (linear) 等。
+- 公开 API 签名 (javap com.comsol.api_1.0.0.jar): `com.comsol.model.ModelNode.sorder()` /
+  `sorder(String)` — 挂在 **component** 节点上 (`model.component("comp1").sorder(...)`)。
+- 取值: `automatic`(默认)/`linear`/`quadratic`/`cubic`/`quartic`; 数值字符串 `"2"` 被拒
+  (FlException "Invalid geometry shape function")。
+- 导出单元类型 (逐值探针, 同一圆柱几何 r=0.03):
+  automatic/quadratic/cubic/quartic → `vtx/edg2/tri2/tet2`; linear → `vtx/edg/tri/tet`。
+  求解器日志相应报 Quadratic/Cubic/Quartic/Linear Lagrange → **导出上限为二阶**。
+- 平面几何 (Block 0.03³) + sorder("quadratic") → 仍 `vtx/edg/tri/tet` (无曲面实体 → 无曲单元)。
+- Mesh 导出节点集 = 3D 解数据集的采样点 (空心圆柱案例 5979 点, 与 hellofem 案例的 result.txt 一致)。
+- Mesh 导出无已求解数据集时: `run()` 不抛异常且**不写文件** (探针 nostudy_box exists=false)。
+- .mphtxt 块结构: `<n> # number of mesh vertices` → `# Mesh vertex coordinates`;
+  块头 `<npe> <name> # type name` → `# number of vertices per element` / `# number of elements` /
+  `# Elements`; 二阶单元中点节点排在角点之后 (tri2 边序 (0,1),(1,2),(2,0))。
+- 布尔切片: `Difference(cyl, cyl)` 后每个圆柱面是 4 片 (探针面清单: 1,2,7,10 = r_out; 5,6,8,9 = r_in;
+  3,4 = 端面)。只选 1 片 → BC 只覆盖部分边界, 电位场偏差 0.5 V 且 COMSOL 无任何报错。

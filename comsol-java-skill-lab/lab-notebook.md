@@ -606,3 +606,32 @@
   physics-api-recipes.md 加 Element order (p-refinement) 行 + pitfall 段
 - **回归**: sweep --keys SmCantileverBendingStationary,M1,SmCantEig,SmPlateHole 4/4 PASS
 - 用户决策: 暂时只加这一个案例, 第二个高阶案例延后; run.py / health_check.py 注册 SmCantileverBendingStationary
+
+### 2026-09-17 二阶几何网格导出 (sorder + Mesh 导出) — 案例 EcHollowCylinderStationary
+
+- 用户要求: 把"导出二阶网格"的方法并入 autocomsol (来源: hellofem 的 EcCylinderOrder2Stationary 案例)。
+- **探针 (ApiProbes, 临时类已删) 实证**:
+    - 几何形状阶次 API: `component().sorder("automatic"|"linear"|"quadratic"|"cubic"|"quartic")`, 默认 automatic;
+      数值字符串 "2" 被拒 (FlException "Invalid geometry shape function")。签名证据: `javap` 的 `ModelNode.sorder(String)`。
+    - 官方模型挖掘: 7 个官方 .mph 的 action 历史里有 `t(s("/component/comp1")) m(s("sorder")) s("quadratic"|"linear")`
+      (如 ultrasound_flow_meter_generic.mph) — 该 API 的权威字符串来源。
+    - 导出单元阶次由几何形状阶次决定 (同一圆柱几何逐值实测): automatic/quadratic → edg2/tri2/tet2;
+      linear → edg/tri/tet; cubic/quartic → 求解器日志 "Cubic/Quartic Lagrange" 但导出**仍是** P2 (导出上限二阶)。
+    - 平面几何 (Block) + sorder("quadratic") → 仍导出 edg/tri/tet: 没有曲面实体就没有曲单元。
+    - **Mesh 导出必须已有求解数据集**: 只建几何+网格时 `export().run()` 不抛异常但**不写文件** (静默无输出)。
+- **案例 EcHollowCylinderStationary**: 3D 空心圆柱 (r_in=0.01, r_out=0.03, h=0.02) 导电稳态,
+  内表面 Terminal V0=1V / 外表面 Ground / 端面默认绝缘; FreeTet hmax=3mm; 解析 V(r)=V0·ln(r/r_out)/ln(r_in/r_out)。
+  导出 args[2]=mesh.mphtxt (SWEEP_EXTRA_ARGS 新增项), 验证脚本从 CSV 同目录读 mesh.mphtxt。
+- **踩坑 (真实错误, 被验证脚本的 V 剖面检查拦住)**: Difference 把每个圆柱面切成 4 片
+  (面 1,2,7,10 = r_out; 5,6,8,9 = r_in)。只选 1 片时 BC 只覆盖部分边界 → V 与解析解差 0.5 V,
+  而 COMSOL 不报任何错。改为按半径取全部面 (facesAtRadius → int[]) 后恢复。
+- **验证 (10 项全 PASS, runs/_dev_EcHollowCyl)**:
+    - 网格: 类型集 = {vtx, edg2, tri2, tet2}, 每单元 1/3/6/10 节点
+    - 边中点贴解析圆柱面: max|r-R|/R = 1.7e-16 (内) / 2.3e-16 (外); 中点/弦中点偏离比 ≤ 8.7e-10
+    - 场: max|V-V_ana(r)| = 3.1e-4 V (阈值 1e-3); 内壁 V=1 / 外壁 V=0 (偏差 0); 同半径桶散布 7.4e-3 V
+- **反例对照 (fails-before)**: 同一案例改 sorder("linear") → 日志 "Linear Lagrange", 导出 edg/tri/tet,
+  验证脚本 mesh_quadratic_types / mesh_nodes_per_elem 两项 FAIL (临时探针类已删)。
+- **3 处同步**: src/analytic/EcHollowCylinderStationary.java + scripts/verifications/analytic/ec_hollow_cylinder_stationary.py +
+  autocomsol/references/examples/analytic/EcHollowCylinderStationary.java; health_check.py REGISTRY 与 run.py SWEEP_EXTRA_ARGS 已注册。
+- **skill 同步**: case-naming.md 加案例行; physics-api-recipes.md 加 Geometry shape order 行 + 3 条 pitfall
+  (布尔切片选面 / sorder 与 ShapeProperty 的区别 / Mesh 导出静默无输出) + .mphtxt 块结构读法。
