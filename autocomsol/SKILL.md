@@ -10,14 +10,15 @@ Create a new COMSOL Java simulation from a user requirement. Treat the bundled c
 ## Workflow
 
 1. Translate the request into geometry, materials, physics, boundary conditions, study type, outputs, and acceptance criteria.
-2. Read `references/case-naming.md` and choose a compliant new case name.
+2. Read `references/case-naming.md` and choose a compliant new case name. Naming is a hard gate — `<PhysicsPrefix><ModelDescription><StudyType>` only; no study-irrelevant suffixes (e.g. `Order`, `V2`, `Test`). Re-pick before writing any Java if the first attempt drifts.
 3. Select the closest complete Java reference from `references/examples/analytic/` (verified API patterns) or `references/examples/physical/` (flow / geometry patterns); read the whole file before reusing its nontrivial API patterns.
 4. Read the applicable reference below before implementing unfamiliar API calls.
-5. Create a new Java model. Preserve proven patterns, but adapt parameters, geometry, selections, materials, studies, exports, and checks to the requested problem.
-6. Specify an output contract: Java `main` receives an MPH path as its first argument and a CSV path as its second argument. Save and export to those paths.
-7. Compile with `comsolcompile` and run with `comsolbatch` in the caller's project environment. Follow `references/command-usage.md`; this skill does not provide or install a runtime.
-8. Assess success from the output files, batch log, and a model-specific numerical check. Do not treat a zero batch exit code alone as validation.
-9. When a new API pattern is confirmed, retain the full Java source and add concise evidence documentation alongside the reference library.
+5. For unfamiliar API strings (anything not already validated in `references/physics-api-recipes.md` or another case), probe first per `references/api-validation-probes.md` — mine a representative `.mph` for the exact tag, then run a temporary scratch probe, then delete the probe class before committing.
+6. Create a new Java model. Preserve proven patterns, but adapt parameters, geometry, selections, materials, studies, exports, and checks to the requested problem. When demonstrating a new API, default to a single fixed configuration that exercises it cleanly — avoid building parametric sweeps or factor machinery around a not-yet-trusted call.
+7. Specify an output contract: Java `main` receives an MPH path as its first argument and a CSV path as its second argument. Save and export to those paths.
+8. Compile with `comsolcompile` and run with `comsolbatch` in the caller's project environment. Follow `references/command-usage.md`; this skill does not provide or install a runtime.
+9. Assess success from the output files, batch log, and a model-specific numerical check. Do not treat a zero batch exit code alone as validation.
+10. When a new API pattern is confirmed, retain the full Java source and add concise evidence documentation alongside the reference library.
 
 ## Reference routing
 
