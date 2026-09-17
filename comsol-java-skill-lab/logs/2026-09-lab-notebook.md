@@ -113,4 +113,5 @@
   并在写日志处加 `or ""` 兜底。`locale.getencoding()` = 本机控制台编码 (本机 cp936 → 中文可读;
   UTF-8 机器上自动为 utf-8), 无需硬编码, 也不再丢输出。
 - **验证**: 修复后 `run.py compile` 无 traceback, `EcSquareStationary.compile.stderr.log` 162 字节且中文可读;
-  `run.py sweep --keys E1,T2,EcHollowCyl` 3/3 PASS; 随后全量 sweep 复核。
+  `run.py sweep --keys E1,T2,EcHollowCyl` 3/3 PASS; 随后全量 sweep **14/14 PASS**
+  (日志无 traceback, `build/classes/sweep.compile.stderr.log` 133 字节中文正常)。
