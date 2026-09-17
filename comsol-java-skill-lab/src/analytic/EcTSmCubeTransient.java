@@ -3,7 +3,7 @@ import com.comsol.model.Model;
 import com.comsol.model.util.ModelUtil;
 
 /**
- * EcTSmCubeTransient: 3D 立方体瞬态电→热→力耦合（含解析解, 几何不同于 EcTSmCylinderStationary 的圆柱）
+ * EcTSmCubeTransient: 3D 立方体瞬态电→热→力耦合（含解析解, 几何不同于 EcTCylinderStationary 的圆柱）
  *
  * <p>物理: 电流 (ConductiveMedia, ec) + 传热 (HeatTransfer, ht) + 固体力学 (SolidMechanics, solid)， 焦耳热经
  * ElectromagneticHeating 耦合 (ec→ht)，温度场经 ThermalExpansion 多物理场耦合 (ht→solid)。

@@ -15,8 +15,8 @@
 
 ## 3. 参数语法
 
-- `comsolcompile -help` → logs/comsolcompile-help.log (exit=0, 32 行)
-- `comsolbatch -help` → logs/comsolbatch-help.log (exit=0, 115 行)
+- `comsolcompile -help` → logs/2026-09-comsolcompile-help.log (exit=0, 32 行)
+- `comsolbatch -help` → logs/2026-09-comsolbatch-help.log (exit=0, 115 行)
 - ini 文件: `bin/win64/comsolcompile.ini`, `bin/win64/comsolbatch.ini` — 显示 Eclipse Equinox 启动参数、JVM 堆 (Xmx2g)、自带 jre 路径、osgi workspace 策略
 
 ## 4. Java API 类路径

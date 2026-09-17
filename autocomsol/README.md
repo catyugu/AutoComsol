@@ -48,7 +48,7 @@ autocomsol/
 ├── agents/openai.yaml       # Codex UI metadata
 └── references/
     ├── examples/
-    │   ├── analytic/        # 15 个有解析解验证的 Java 参考
+    │   ├── analytic/        # 13 个有解析解验证的 Java 参考
     │   └── physical/        # 2 个仅流程/物理合理性的 Java 参考
     ├── command-usage.md     # comsolcompile/comsolbatch usage (+ lab sweep)
     ├── case-naming.md       # Naming, tier placement, physics/materials/variables mapping

@@ -6,9 +6,12 @@
 # 运行输出
 runs/
 models/
-logs/
 build/
 exports/
+
+# 日志归档: 只入库月度台账 (.md), 其余捕获日志为本机产物
+logs/*
+!logs/*.md
 
 # 临时调查
 scratch/

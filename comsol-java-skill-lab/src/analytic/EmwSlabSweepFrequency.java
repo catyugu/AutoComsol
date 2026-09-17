@@ -5,8 +5,8 @@ import com.comsol.model.util.ModelUtil;
 /**
  * EmwSlabSweepFrequency: 介质平板 频域电磁波 (emw) 扫频 — 演示频率扫描 + S 参数随频率变化.
  *
- * <p>与 EmwSlabFrequency 相同的几何/材料/边界 (3D 周期单元: 空气盒 + 居中介质板 n_slab=2, Periodic 端口 + Floquet 周期 +
- * IdenticalMesh), 但研究为频率扫描 range(2,0.1,3) GHz (11 个频点)。提取 emw.S11dB / emw.S21dB 随频率的曲线, 逐频点对比
+ * <p>几何/材料/边界 (3D 周期单元: 空气盒 + 居中介质板 n_slab=2, Periodic 端口 + Floquet 周期 +
+ * IdenticalMesh), 研究为频率扫描 range(2,0.1,3) GHz (11 个频点)。提取 emw.S11dB / emw.S21dB 随频率的曲线, 逐频点对比
  * Fabry-Pérot 解析解。
  *
  * <p>本案例教学点: 频域电磁波扫频 (Frequency 研究步 plist + punit), 以及 S 参数全局曲线随频率的导出 (CutPoint + Data 导出, 1 行/频率)。

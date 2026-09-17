@@ -21,7 +21,7 @@ Compile options when compiling a COMSOL Model Java file:
 示例: comsolcompile file.java
 ```
 
-来源: `comsolcompile -help` 输出，记录于 logs/comsolcompile-help.log
+来源: `comsolcompile -help` 输出，本机捕获归档于 `logs/2026-09-comsolcompile-help.log`（32 行）
 
 ## comsolcompile 编译命令模板
 
@@ -55,7 +55,7 @@ Batch options 关键项:
 示例: comsolbatch -inputfile <path> -outputfile <path> -study std1
 ```
 
-来源: `comsolbatch -help` 输出，记录于 logs/comsolbatch-help.log
+来源: `comsolbatch -help` 输出，本机捕获归档于 `logs/2026-09-comsolbatch-help.log`（115 行）
 
 ## comsolbatch 运行 Java 批处理类命令模板
 

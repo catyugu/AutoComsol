@@ -41,7 +41,7 @@ re.findall(r'op="(Av[A-Za-z]+)"', d)              # → 派生值（AvSurface/Av
 re.findall(r'op="(PlotGroup[A-Za-z0-9]*)"', d)    # → 绘图组（PlotGroup1D/2D/3D）
 ```
 
-先例：EmwSlabFrequency 的周期 Port / PeriodicCondition 字符串就是从
+先例：EmwSlabSweepFrequency 的周期 Port / PeriodicCondition 字符串就是从
 `applications/RF_Module/.../fresnel_equations.mph` 挖出来的。
 
 已挖到（2026-08-16，证据见 local-evidence-index.md）：
@@ -86,8 +86,8 @@ public class ApiProbes {
 运行：`python scripts/run.py all ApiProbes <runs-dir>`（复用既有闭环，探针类放
 src 下编译会进 build/classes，跑完即删）。
 
-结果记入 `lab-notebook.md` + `local-evidence-index.md`；探针类从 `src/` 删除，
-**不入库**（不污染 14 案例清单，无需三处同步）。
+结果记入 `logs/YYYY-MM-lab-notebook.md` + `local-evidence-index.md`；探针类从 `src/` 删除，
+**不入库**（不污染正式案例清单，无需三处同步）。
 
 ## 降级规则
 
@@ -96,7 +96,7 @@ src 下编译会进 build/classes，跑完即删）。
 - `Array` 失败 → N 个复制体 + `Union`（已验证）
 - `Image` 导出失败 → 本案例先不产图，派生值载荷保留
 - `result().numerical()` 派生值失败 → 用已验证的 `PlotGroup1D`+"Global"+`"Plot"` 导出
-  （EmwSlabFrequency 范式）读标量
+  （EmwSlabSweepFrequency 范式）读标量
 - `Eigenfrequency` 研究失败（几乎不可能）→ 退 `"Eigenvalue"` 并重新验证
 
 ## 触发条件

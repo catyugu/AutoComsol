@@ -1,25 +1,8 @@
-# COMSOL Java 自动建模 Skill 研发 — 实验台账
+# COMSOL Java 自动建模 Skill 研发 — 实验台账（2026-08）
 
-本文件为全过程实验台账，随实验推进持续追加，禁止事后凭记忆补写。
+## 2026-08-02
 
-## 全局设置
-
-- 工作根目录: `E:\code\playground\autocomsol\comsol-java-skill-lab`
-- 资源上限（占位符未定义，采用保守值）: 单次求解 10 min，内存 8 GB，并发 1
-- 平台: Windows 11 Home China 10.0.26200，shell: bash (Git Bash 风格)
-- 起止时间: 2026-08-02 开始
-
-## 运行规则
-
-- 每运行使用独立 run-id 目录: `YYYYMMDD-HHMMSS-实验名-短哈希`
-- 命令执行记录: 退出码、耗时、关键 stdout/stderr、生成文件清单
-- 结果分类: PASS / PASS_WITH_WARNINGS / FAIL / SKIPPED / RESOURCE_LIMIT
-
----
-
-## 日志条目（按时间顺序追加，最新在底部）
-
-### 2026-08-02 Phase 1 环境发现
+### Phase 1 环境发现
 
 - 定位 comsolcompile / comsolbatch: 均位于 `D:\Program Files\COMSOL\COMSOL62\Multiphysics\bin\win64\`，在 PATH 中
 - 版本: COMSOL Multiphysics 6.2.0.290（comsolcompile -version，exit=0）
@@ -73,7 +56,7 @@
 - CSV 导出 API 验证: `result().export().create("data1","Data")` + set data/dset1 + expr(String[]) + run
 - EvalGlobal 仅支持全局量（es.normE 是域量 → 未定义）；域量评估用 CSV 导出离线分析
 
-### 2026-08-03 用户指令：清理与重构
+## 2026-08-03 用户指令：清理与重构
 
 - 用户要求: 1) 移除所有试验代码/输出，只留 BaselineModel.java 和 ElectricalBaseline.java（E1 最终版）；
   2) 脚本改用 Python（跨平台，弃 bash）；3) 建立 git 仓库并提交；4) 调查几何特征边界选择（避免靠猜边界编号）。
@@ -82,7 +65,7 @@
 - 已删除 bash 脚本: compile-run.sh, run-command.sh, run-experiment.sh
 - 下一步: 写 Python 脚本(run.py 等) → git init+提交 → 调查几何边界选择
 
-### 2026-08-03 几何边界选择调查 — 突破（告别靠猜）
+## 2026-08-03 几何边界选择调查 — 突破（告别靠猜）
 
 - 用户要求不单独封装 BoundarySelector 类 → 逻辑内联进每个模型文件的私有方法
 - **核心 API（本机验证）**: `GeomInfo`（通过 `model.component(comp).geom("geom1")` 获取）
@@ -98,7 +81,7 @@
   → 必须用 COMSOL 自带 javac（`<root>/java/win64/jre/bin/javac.exe`，需 `-encoding UTF-8`）
 - run.py 已更新: 用 COMSOL javac + `-cp api_jar` 编译 src 下所有 .java（共享类自动包含）
 
-### 2026-08-03 3D 面/曲面几何特征提取 — PASS
+## 2026-08-03 3D 面/曲面几何特征提取 — PASS
 
 - 用户要求: 对 3D 边界面、曲边、曲面提取几何特征，用静电案例验证
 - **3D 方块 (Block 1m³, 中心原点)**: faceX(f, params) 多点采样 → 找恒定坐标维
@@ -114,7 +97,7 @@
     - 面编号识别: TOP=4, BOTTOM=3, SIDE=1,2,5,6
 - 通用方法: faceParamRange 确定参数域 → faceX 采样中心/多点 → 恒定坐标维或 r² 判据分类面
 
-### 2026-08-03 ES→EC 迁移 — PASS
+## 2026-08-03 ES→EC 迁移 — PASS
 
 - 用户要求: 把现有案例从 ES(Electrostatics) 迁移到 EC(Electric Currents)
 - **本机接口证据**: `ElectricCurrents` 报 Unknown physics interface（不可用）；
@@ -132,7 +115,7 @@
 - 结论: ES↔EC 迁移只需改 physics 接口名(Electrostatics→ConductiveMedia)、
   feature tag(ccn1→cucn1)、材料属性(epsilonr→electricconductivity)、导出变量(normE→normJ)
 
-### 2026-08-03 用户反馈: 输出目录与直接替换
+## 2026-08-03 用户反馈: 输出目录与直接替换
 
 - 用户要求: 1) .class 不应写到 src 目录; 2) 直接替换原案例而非新增 EC 后缀文件
 - run.py 修正: class 输出到 `build/classes/`（javac `-d build/classes`），run_batch 从 build/classes 加载
@@ -141,7 +124,7 @@
 - 替换后验证: EC2D V线性 dev=1.98e-12, J/σ=1.0; EC3D V线性 dev=5.51e-07, J/σ=1.0 — 均 PASS
 - src 目录现在只有 .java，无 .class；build/classes 放编译产物
 
-### 2026-08-03 T1 3D 传热基准（空心圆柱）— PASS
+## 2026-08-03 T1 3D 传热基准（空心圆柱）— PASS
 
 - 用户要求: T1 传热（Heat Transfer In Solids），几何相对复杂的 3D case，验证后固定
 - **本机接口证据**: HeatTransferInSolids 报 Unknown（不可用）；**HeatTransfer 是本机纯固体传热接口**
@@ -160,7 +143,7 @@
   热量守恒在健康检查用解析梯度完成
 - 产物: runs/t1*(粗/中/细三档), ThermalBaseline.java, health_check.py T1 逻辑
 
-### 2026-08-03 M1 固体力学基准 + 案例命名规范化
+## 2026-08-03 M1 固体力学基准 + 案例命名规范化
 
 - 用户要求: 1) M1 用解析解更确切的案例; 2) 案例规范化命名(缩略名+模型+study)+映射文档
 - **M1 最终案例: 3D 空心圆柱轴向拉伸 (SmCylinderAxialStationary)**
@@ -184,7 +167,7 @@
     - 变量: solid.mises (von Mises), solid.disp (位移)
 - health_check.py 新增 M1 检查(内部vm+上端位移)
 
-### 2026-08-03 T2 2D瞬态环形传热（对流 BC + Bessel解析解）— PASS
+## 2026-08-03 T2 2D瞬态环形传热（对流 BC + Bessel解析解）— PASS
 
 - 用户要求: 2D 有解析解的瞬态传热, 几何不太简单, 含对流换热边界条件
 - **案例 TRingTransient**: 2D 圆环(外圆0.5-内圆0.2, Difference), HeatTransfer 瞬态
@@ -203,7 +186,7 @@
 - **验证结果**: inner_dirichlet=0.0K, transient_profile max=1.64K(8时刻), steady_analytic=0.20K — PASS
 - 产物: runs/t2/, src/TRingTransient.java, scripts/verifications/t_ring_transient.py
 
-### 2026-08-03 ET1 3D瞬态电热耦合（电磁热 + 对流 + Bessel解析解）— PASS
+## 2026-08-03 ET1 3D瞬态电热耦合（电磁热 + 对流 + Bessel解析解）— PASS
 
 - 用户要求: 3D 有解析解的瞬态电热耦合案例
 - **案例 EcTCylinderTransient**: 3D 实心圆柱(R=0.3, L=1), ConductiveMedia+HeatTransfer
@@ -220,7 +203,7 @@
 - **验证结果**: V_linear=5.8e-8V, transient_profile=0.068K, steady_analytic=0.049K, z_symmetry=0.29K — PASS
 - 产物: runs/et1/, src/EcTCylinderTransient.java, scripts/verifications/ec_t_cylinder_transient.py
 
-### 2026-08-03 验证脚本拆分到 verifications/
+## 2026-08-03 验证脚本拆分到 verifications/
 
 - 用户要求: health_check.py 拆到 scripts/verifications/, 每个案例一个验证脚本(小写下划线命名), health_check 只调度
 - **结构**:
@@ -231,7 +214,7 @@
 - common.load_csv 需识别瞬态 % 表头(含坐标或 @ t= 的 % 行) 和 ET1 小写 x,y,z 列头
 - 回归: E1/T1/M1/T2/ET1 全部 PASS (旧 CSV 验证不变)
 
-### 2026-08-03 ET2 3D同轴双材料电热耦合稳态（含热源, 全对流）— PASS
+## 2026-08-03 ET2 3D同轴双材料电热耦合稳态（含热源, 全对流）— PASS
 
 - 用户要求: 三维多材料电热耦合稳态案例, 必须含热源, 不用绝热而是全对流边界
 - **案例 EcTCylinderStationary**: 3D 同轴圆柱(内芯 r1=0.15 导电 + 外壳 r2=0.3 绝缘, L=1)
@@ -253,7 +236,7 @@
   T_shell=2.16K, interface=2.31K, convection_wall=1.24K, z_symmetry=0.076K — PASS
 - 产物: runs/et2/, src/EcTCylinderStationary.java, scripts/verifications/ec_t_cylinder_stationary.py
 
-### 2026-08-03 几何探测确定性识别域编号（告别试错）— 突破
+## 2026-08-03 几何探测确定性识别域编号（告别试错）— 突破
 
 - 用户要求: 研究能否用几何探测过滤域编号, 不依赖反复尝试
 - **核心 API (GeomProbe 诊断验证)**:
@@ -272,7 +255,7 @@
   F7/F8(r=0.21 内芯端面)=域2内芯
 - 产物: detectCoreShellDomains 内联方法; ET2 移除硬编码 {1,2}, 全部回归 PASS
 
-### 2026-08-03 ETM1 稳态多材料电→热→力耦合 — PASS（三场耦合里程碑）
+## 2026-08-03 ETM1 稳态多材料电→热→力耦合 — PASS（三场耦合里程碑）
 
 - 用户要求: 稳态多材料、有解析解的电→热→力三场耦合案例
 - **案例 ETM1**: 3D 同轴双材料圆柱 (内芯 r1=0.15 导电 + 外壳 r2=0.3 绝缘, L=1)
@@ -293,7 +276,7 @@
 - **验证**: V_linear=2.5e-8V, T_profile=2.81K, stress_sr=6.2MPa, stress_st=9.5MPa, stress_sz=14MPa (相对 σ_z~216MPa 偏差 3-7%), sr_wall_zero=4.7MPa — PASS
 - 产物: runs/etm1/, src/ETM1.java, scripts/verifications/etm1_coaxial_stationary.py
 
-### 2026-08-03 ETM2 瞬态不同几何电→热→力耦合 — PASS
+## 2026-08-03 ETM2 瞬态不同几何电→热→力耦合 — PASS
 
 - 用户要求: 瞬态、不同几何(非圆柱)、有解析解的电→热→力案例
 - **案例 ETM2**: 3D 立方体 L=0.2m (单材料, 与 ETM1 圆柱几何不同)
@@ -313,7 +296,7 @@
 - 产物: runs/etm2/, src/ETM2.java, scripts/verifications/etm2_cube_transient.py
 - 回归: E1/T1/M1/T2/ET1/ET2 全部 PASS
 
-### 2026-08-03 三场案例规范命名 — 重命名 ETM1/ETM2 → EcTSm*
+## 2026-08-03 三场案例规范命名 — 重命名 ETM1/ETM2 → EcTSm*
 
 - 用户要求: 三场(电-热-结构)前缀用 **EcTSm**(Sm=结构/固体, 非 M)
 - 命名规则: `<物理场缩略名><模型概述><Study类型>`, 三场前缀 = Ec + T + Sm = **EcTSm**
@@ -323,7 +306,7 @@
 - health_check.py REGISTRY 更新为 EcTSmCyl/EcTSmCube; case-naming.md 示例与映射表同步
 - 三个源文件编译均 PASS
 
-### 2026-08-03 EcTSmBusbar 母线板案例 — PASS（三场耦合里程碑 2, 复杂几何）
+## 2026-08-03 EcTSmBusbar 母线板案例 — PASS（三场耦合里程碑 2, 复杂几何）
 
 - 用户要求: 建立母线板 case, L形铜母线 + 3个钛螺栓, 稳态电→热→结构三场耦合,
   计算 V/J/QJ/T/热膨胀位移 u/von Mises 应力与主应力
@@ -365,7 +348,7 @@
 - 回归: E1/T1/M1/T2/ET1/ET2/EcTSmCyl/EcTSmCube 全部 PASS
 - **用户纠错**: 螺栓仅向外侧伸出 2*tbb (原实现两端都伸出 → 10域; 修正为单侧 → 7域, 与任务书一致)
 
-### 2026-08-12 emw 电磁波频域案例 (EmwSlab 单频 + 扫频) — PASS（RF 模块里程碑）
+## 2026-08-12 emw 电磁波频域案例 (EmwSlab 单频 + 扫频) — PASS（RF 模块里程碑）
 
 - 用户要求: 基于 demo12.java (emw 可重构超表面) 写简单案例, 演示 **emw (电磁波, 频域)** 仿真,
   频域电磁场接口命名 **Emw**
@@ -399,7 +382,7 @@
   runs/emw_slab_frequency/, runs/emw_slab_sweep/
 - 案例 3 (lumped element 可重构单元) 暂缓 — 用户指示后续再做
 
-### 2026-08-15 TRevolve 双层圆环 Revolve 旋转体传热 — PASS（几何里程碑: Revolve）
+## 2026-08-15 TRevolve 双层圆环 Revolve 旋转体传热 — PASS（几何里程碑: Revolve）
 
 - 用户要求: 用 Revolve 旋转体几何做 3D 双层圆环稳态传热, 双材料, 解析解验证
 - **案例 TRevolveStationary**: 3D 双层圆环 (Revolve 旋转体)
@@ -424,7 +407,7 @@
   interface_continuity=0.015K, radial_only=1.84K — PASS
 - 产物: src/TRevolveStationary.java, scripts/verifications/t_revolve_stationary.py, runs/t_revolve/
 
-### 2026-08-15 TmSlab 非线性导热 k(T) 变量变换解析解 — PASS（非线性材料里程碑）
+## 2026-08-15 TmSlab 非线性导热 k(T) 变量变换解析解 — PASS（非线性材料里程碑）
 
 - 用户要求: 3D 平板非线性导热稳态, k(T) 温度相关, 变量变换解析解
 - **案例 TmSlabNonlinear**: 3D 立方体 (Block L=0.2m, 单域)
@@ -440,7 +423,7 @@
   T_monotonic 左>右 — PASS
 - 产物: src/TmSlabNonlinear.java, scripts/verifications/tm_slab_nonlinear.py, runs/tm_slab/
 
-### 2026-08-15 补全 TRevolve / TmSlab 闭环 — 源码 + 验证脚本 + skill 同步
+## 2026-08-15 补全 TRevolve / TmSlab 闭环 — 源码 + 验证脚本 + skill 同步
 
 - 用户要求: 把 t_revolve / tm_slab 两个案例补全闭环 (源码/验证脚本/台账/skill 同步)
 - **背景**: 两案例运行产物在 runs/ 且数值已 PASS, 但源码 src/*.java 与验证脚本缺失, 台账未记录
@@ -451,7 +434,7 @@
 - **skill 同步**: 两案例 Java 复制进 autocomsol/references/examples/, case-naming.md 补命名映射,
   physics-api-recipes.md 补 Revolve 旋转体 + 非线性材料配方, geometry-selection.md 补 Revolve 曲面采样坑
 
-### 2026-08-15 目录结构分 tier 重构 — analytic / physical
+## 2026-08-15 目录结构分 tier 重构 — analytic / physical
 
 - 用户要求: 把有解析解验证的案例与无解析解、仅验证流程可运行性/大体物理合理性的案例分开存放
 - **tier 划分**:
@@ -466,7 +449,7 @@
 - **文档**: SKILL.md/README.md/physics-api-recipes.md/geometry-selection.md/verification-guidelines.md/case-naming.md(两处)/AGENTS.md 同步 tier 说明
 - **附带修正**: emw 两案例 (EmwSlabFrequency/EmwSlabSweep) 此前未注册进 health_check REGISTRY (历史缺口), 本次一并补入 (实验键 EmwSlabFrequency/EmwSlabSweep)
 
-### 2026-08-16 M1 SmCylinderAxialStationary 验证升级 — 均值→逐点场对比
+## 2026-08-16 M1 SmCylinderAxialStationary 验证升级 — 均值→逐点场对比
 
 - 用户要求: 把 M1 从"均值+宽容差(10%)"升级为"逐点场对比+窄容差", 达到 analytic 层应有严格度
 - **导出变更**: Java 导出表达式 solid.mises/solid.disp(幅值) → **solid.mises/solid.sz/solid.w**
@@ -483,7 +466,7 @@
 - **验证**: 5 项全 PASS; 回归 TRevolve/TmSlab/EcTSmBusbar/EmwSlabFrequency 全 PASS
 - 产物: src/analytic/SmCylinderAxialStationary.java(导出改), scripts/verifications/analytic/sm_cylinder_axial_stationary.py(重写), runs/smcyl_recovered/
 
-### 2026-08-16 方向深化批 0 — 工具链 + 探针协议（几何深度/物理扩展/后处理工程化的前置）
+## 2026-08-16 方向深化批 0 — 工具链 + 探针协议（几何深度/物理扩展/后处理工程化的前置）
 
 - 用户选定深化方向: 1) 几何深度(布尔链/阵列/镜像/STEP), 3) 物理扩展(辐射/共轭传热/磁场/EMW完整化/模态),
   4) 后处理+工程化(派生值/绘图+PNG/全回归)。跳过方向2(网格/求解器)。
@@ -500,7 +483,7 @@
     - 导出 ImageExport 接口类在 api jar; geommesh jar 有 OpArray/OpMirror/OpMove/OpRotate 无 OpPattern
     → 用 Array 不用 Pattern
 
-### 2026-08-16 批 1 探针实证 — Array/PG3D/Image/AvVolume 全部 OK（临时探针类，不入库）
+## 2026-08-16 批 1 探针实证 — Array/PG3D/Image/AvVolume 全部 OK（临时探针类，不入库）
 
 - **探针方法验证** (api-validation-probes.md 落地): 写临时 ApiProbes scratch 类,
   `python scripts/run.py all ApiProbes <run-dir> <mph> <png>` 一次编译+运行, 结果:
@@ -517,7 +500,7 @@
     `run()` + `getReal()` → double[][]。探针类不入库, 证据记此 + local-evidence-index §18。
 - 产: runs/api_probes/ (已删), src/analytic/ApiProbes.java (已删)
 
-### 2026-08-16 批 1 案例 B TFinArrayStationary — Array 散热片 + 方向4载荷 (PASS)
+## 2026-08-16 批 1 案例 B TFinArrayStationary — Array 散热片 + 方向4载荷 (PASS)
 
 - 几何: 基板(0.05×0.02×0.005) + 5 翅(0.001×0.02×0.10, **Array** 阵列 x 间距 0.0075) + Union(intbnd=on)。
 - 物理: HeatTransfer, 基板底 z=0 定温 350K, 其余外表面对流 h=25→293K, k=200 全域。
@@ -537,7 +520,7 @@
     → 结论: 保留 AvVolume 节点作 API 模式演示, 体积平均由验证脚本从 field.csv 计算 (326.6K)。
 - 验证: 5 项全 PASS; 产物 runs/t_fin_array/{field.csv, TFinArray.mph, TFinArray.png, health.*}
 
-### 2026-08-16 批 1 案例 C SmCantileverEigenfrequency — 方形截面悬臂梁模态 (PASS)
+## 2026-08-16 批 1 案例 C SmCantileverEigenfrequency — 方形截面悬臂梁模态 (PASS)
 
 - 几何: Block 悬臂梁 L=1.5, 方形截面 b=h=0.1 (L/h=15), 一端 Fixed。
 - 材料: E=200GPa, nu=0.3, rho=7850。显式网格 FreeTet+Size hmax=0.035 (≈b/3)。
@@ -553,7 +536,7 @@
   (梁沿 x, 截面 y-z, 弯曲模态在 v/w 方向, 轴向 u 极小; 判断 |v| vs |w| 而非 |u| vs |v|)。
 - 验证: 4 项全 PASS; 产物 runs/sm_cant_eig/{freq.csv, modes.csv, SmCant.mph, health.*}
 
-### 2026-08-16 批 1 全回归 sweep — 14/16 PASS + 修复 E1 历史 bug + 2 个 OOM 环境问题
+## 2026-08-16 批 1 全回归 sweep — 14/16 PASS + 修复 E1 历史 bug + 2 个 OOM 环境问题
 
 - **修复 E1 历史 bug (ec_square_stationary.py)**: 源导出 ec.normJ (σE=5.998e7 A/m²)，
   但验证脚本检查 normE/期望 1 V/m → 永久 FAIL。物理是 ConductiveMedia，场量是电流密度；
@@ -569,69 +552,3 @@
 - **OOM 复现确认**: EcTSmCylinderStationary 单独重试仍 OOM (50.8s, 同 "Out of memory during
   LU factorization")。判定: comsolbatch.ini 固定 -Xmx2g, 3 场耦合 LU 分解超限, 稳定复现,
   非偶发。已记入 machine-profile.md。两个重耦合案例在默认堆下无法过回归 (环境限制)。
-
-### 2026-09-17 高阶物理场离散阶次 (ShapeProperty) — 案例 SmCantileverBendingStationary
-
-- 用户要求: 跑通至少两个高阶物理场 (p>1 Lagrange) 案例; 先做悬臂梁弯曲的稳态解析解验证。
-- **本机 API 实证 (ShapeProperty 入口)**:
-    - 挖掘官方 mph dmodel.xml (carbon_fibers / heat_convection_2d / loaded_spring) 发现:
-    `<PhysicsProp tag="ShapeProperty"><param param="order_temperature" value="1|1,'2'"/></PhysicsProp>`
-    SolidMechanics 同样的 PhysicsProp 但参数是 `order_displacement="2s"` (数字 + 可选 's' = serendipity)
-    - API: `physics().prop("ShapeProperty").set("order", "1/2/3/4")` 对 HeatTransfer/ConductiveMedia 全部通过
-    - API: SolidMechanics 只能用 `order_displacement` (探针实测 `order` 拒绝); 接受 "1","2","3","4","2s","3s"
-    - 直接 setString 反序列化得到 "Geometry shape function: Quadratic Lagrange" — 即真改求解器阶次
-- **案例 SmCantileverBendingStationary**: 2D 矩形悬臂梁 (L=10, h=2), 左端 Fixed, 右端
-  BoundaryLoad ForceArea FperArea=[M·y/I, 0, 0] (端部弯矩精确等效); 物理 SolidMechanics ν=0
-  (消除 σ_yy/u_y); 显式 p=2 (二次 Lagrange); hmax=0.4 中等密度网格
-- **解析解**: σ_xx(y) = M·y/I = 1.5·y (M=1, I=h³/12=2/3); σ_yy=0, σ_xy=0; u_x 沿 y 线性 (Euler-Bernoulli)
-  注: 2D plane stress ν=0 时 u_y 仍有非零值 (自由 ε_yy), 不作验证
-- **验证 (5 项, 全 PASS)**:
-    - σ_xx 全场 max_err = 3.33e-10 (机器精度, 阈值 1e-6; 直接体现 p=2 优势)
-    - σ_xx 中段 x_std = 6.63e-11 (纯弯曲判据)
-    - u_x 在 x=4 沿 y 线性残差 = 1.78e-15 (机器精度)
-    - σ_yy 中线最大 = 1.48e-13; σ_xy 中线最大 = 2.09e-11
-- **对比基线 (探针运行 p=1 同网格)**:
-    - p=1: σ_xx 中段 max_err = 6.40e-1 (~64% 相对误差, O(h))
-    - p=2: σ_xx 中段 max_err = 3.33e-10 (机器精度)
-    - 同一 hmax=0.4 网格, 阶次提升一档误差降低 10 个数量级 — p-refinement 强收敛的实证
-- **关键调试**:
-    - Java 反射调用 `prop("ShapeProperty")` 必须从 `getClass()` 拿 Method (`PhysicsPropClient` 接口无 prop 方法签名)
-    - SolidMechanics 用 `set("order_displacement", "2")` (不是 `set("order", "2")`, 后者报 InvocationTargetException)
-    - 2D 几何必须用 `Rectangle` 不能用 `Block` (Block 仅 3D); 2D 边界特征维度参数为 1 (不是 2)
-    - BoundaryLoad LoadType 值是 `"ForceArea"` (不是 `"ForcePerArea"`); FperArea 是 [fx, fy, fz] 三分量字符串数组
-    - SolidMechanics 应力分量变量名是大写 `solid.SX/SY/SXY` (本机实测, 2D plane stress)
-- **3 处同步**: src/analytic/SmCantileverBendingStationary.java + scripts/verifications/analytic/sm_cantilever_bending_stationary.py +
-  autocomsol/references/examples/analytic/SmCantileverBendingStationary.java + 同目录验证脚本
-- **skill 同步**: case-naming.md 加 SmCantileverBendingStationary 映射 + 命名规则说明;
-  physics-api-recipes.md 加 Element order (p-refinement) 行 + pitfall 段
-- **回归**: sweep --keys SmCantileverBendingStationary,M1,SmCantEig,SmPlateHole 4/4 PASS
-- 用户决策: 暂时只加这一个案例, 第二个高阶案例延后; run.py / health_check.py 注册 SmCantileverBendingStationary
-
-### 2026-09-17 二阶几何网格导出 (sorder + Mesh 导出) — 案例 EcHollowCylinderStationary
-
-- 用户要求: 把"导出二阶网格"的方法并入 autocomsol (来源: hellofem 的 EcCylinderOrder2Stationary 案例)。
-- **探针 (ApiProbes, 临时类已删) 实证**:
-    - 几何形状阶次 API: `component().sorder("automatic"|"linear"|"quadratic"|"cubic"|"quartic")`, 默认 automatic;
-      数值字符串 "2" 被拒 (FlException "Invalid geometry shape function")。签名证据: `javap` 的 `ModelNode.sorder(String)`。
-    - 官方模型挖掘: 7 个官方 .mph 的 action 历史里有 `t(s("/component/comp1")) m(s("sorder")) s("quadratic"|"linear")`
-      (如 ultrasound_flow_meter_generic.mph) — 该 API 的权威字符串来源。
-    - 导出单元阶次由几何形状阶次决定 (同一圆柱几何逐值实测): automatic/quadratic → edg2/tri2/tet2;
-      linear → edg/tri/tet; cubic/quartic → 求解器日志 "Cubic/Quartic Lagrange" 但导出**仍是** P2 (导出上限二阶)。
-    - 平面几何 (Block) + sorder("quadratic") → 仍导出 edg/tri/tet: 没有曲面实体就没有曲单元。
-    - **Mesh 导出必须已有求解数据集**: 只建几何+网格时 `export().run()` 不抛异常但**不写文件** (静默无输出)。
-- **案例 EcHollowCylinderStationary**: 3D 空心圆柱 (r_in=0.01, r_out=0.03, h=0.02) 导电稳态,
-  内表面 Terminal V0=1V / 外表面 Ground / 端面默认绝缘; FreeTet hmax=3mm; 解析 V(r)=V0·ln(r/r_out)/ln(r_in/r_out)。
-  导出 args[2]=mesh.mphtxt (SWEEP_EXTRA_ARGS 新增项), 验证脚本从 CSV 同目录读 mesh.mphtxt。
-- **踩坑 (真实错误, 被验证脚本的 V 剖面检查拦住)**: Difference 把每个圆柱面切成 4 片
-  (面 1,2,7,10 = r_out; 5,6,8,9 = r_in)。只选 1 片时 BC 只覆盖部分边界 → V 与解析解差 0.5 V,
-  而 COMSOL 不报任何错。改为按半径取全部面 (facesAtRadius → int[]) 后恢复。
-- **验证 (10 项全 PASS, runs/_dev_EcHollowCyl)**:
-    - 网格: 类型集 = {vtx, edg2, tri2, tet2}, 每单元 1/3/6/10 节点
-    - 边中点贴解析圆柱面: max|r-R|/R = 1.7e-16 (内) / 2.3e-16 (外); 中点/弦中点偏离比 ≤ 8.7e-10
-    - 场: max|V-V_ana(r)| = 3.1e-4 V (阈值 1e-3); 内壁 V=1 / 外壁 V=0 (偏差 0); 同半径桶散布 7.4e-3 V
-- **反例对照 (fails-before)**: 同一案例改 sorder("linear") → 日志 "Linear Lagrange", 导出 edg/tri/tet,
-  验证脚本 mesh_quadratic_types / mesh_nodes_per_elem 两项 FAIL (临时探针类已删)。
-- **3 处同步**: src/analytic/EcHollowCylinderStationary.java + scripts/verifications/analytic/ec_hollow_cylinder_stationary.py +
-  autocomsol/references/examples/analytic/EcHollowCylinderStationary.java; health_check.py REGISTRY 与 run.py SWEEP_EXTRA_ARGS 已注册。
-- **skill 同步**: case-naming.md 加案例行; physics-api-recipes.md 加 Geometry shape order 行 + 3 条 pitfall
-  (布尔切片选面 / sorder 与 ShapeProperty 的区别 / Mesh 导出静默无输出) + .mphtxt 块结构读法。
