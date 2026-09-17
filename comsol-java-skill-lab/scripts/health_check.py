@@ -51,6 +51,7 @@ REGISTRY = {
     "SmPlateHole": "analytic/sm_plate_hole_stationary.py",
     "TFinArray": "analytic/t_fin_array_stationary.py",
     "SmCantEig": "analytic/sm_cantilever_eigenfrequency.py",
+    "SmCantileverBendingStationary": "analytic/sm_cantilever_bending_stationary.py",
 }
 
 

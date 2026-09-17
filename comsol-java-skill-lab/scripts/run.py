@@ -132,8 +132,8 @@ def compile_all_sources(label="all"):
         tool = "comsol-javac"
         proc = subprocess.run(cmd, capture_output=True, text=True)
         rc = proc.returncode
-        out.write_text(proc.stdout, encoding="utf-8")
-        err.write_text(proc.stderr, encoding="utf-8")
+        out.write_text(proc.stdout or "", encoding="utf-8")
+        err.write_text(proc.stderr or "", encoding="utf-8")
     else:
         # 回退: comsolcompile 逐个编译（class 输出到源文件旁，需后续移动）
         rc = 0

@@ -16,6 +16,7 @@ Use these as local COMSOL 6.2 evidence. Read the linked full Java case before ap
 | Geometry `Array` (linear pattern) | `geom("geom1").create("arr1","Array")` | `selection("input").set({"blk1"})`, `set("size",String[]{"n1","n2","n3"})`, `set("displ",String[]{"dx","dy","dz"})`. **Must `Union` the arrayed copies** (they are disjoint bodies) before solving a connected-physics model. | `examples/analytic/TFinArrayStationary.java` |
 | 3D boolean `Difference` | `geom("geom1").create("diff1","Difference")` | `selection("input").set({"blk1"})`, `selection("input2").set({"cyl1"})` — 3D subtract of a solid from another (2D already validated). Faces/domains after the boolean are probed, never assumed. | `examples/analytic/SmPlateHoleStationary.java` |
 | Eigenfrequency study | `study("std1").create("eig","Eigenfrequency")` | `set("neigsactive","on")` + `set("neigs","4")`. Read mode frequencies via a `PlotGroup1D` `"Global"` plot of `freq` (no xdataexpr → default mode index x-axis) + `"Plot"` export. | `examples/analytic/SmCantileverEigenfrequency.java` |
+| Element order (p-refinement) | `physics().prop("ShapeProperty").set("order", "1/2/3/4")`; for SolidMechanics use `set("order_displacement", "1/2/3/4/2s/3s")` | COMSOL writes `<PhysicsProp tag="ShapeProperty"><param param="order_temperature" value="1\|1,'2'"/></PhysicsProp>` in `dmodel.xml` and the solver reports "Geometry shape function: Quadratic Lagrange". Higher p converges as O(h^(p+1)); quadratic Lagrange on a coarse mesh already reaches machine precision for bending stresses. | `examples/analytic/SmCantileverBendingStationary.java` |
 | PlotGroup3D surface plot + Image export | `result().create("pg3","PlotGroup3D")` + `export().create("img1","Image")` | Surface plot on a 3D model must use `PlotGroup3D` (a 2D plot group needs a 2D dataset). Image export needs an **absolute** filename path; do not set `size`/`width`/`height` (they reject). | `examples/analytic/TFinArrayStationary.java` |
 
 For exact feature tags, properties, study creation, datasets, and exports, use `case-naming.md`, then inspect the full reference code.
@@ -48,6 +49,7 @@ Runtime behavior:
 - A global parameter must not be named `h` (a COMSOL built-in) — the solve fails with "Duplicate parameter/variable name. Variable: h". Use e.g. `h_conv` (validated on `TFinArrayStationary`).
 - SolidMechanics displacement variables are `u`, `v`, `w` — without a `solid.` prefix. Exporting `solid.u` fails with "Undefined variable" (validated on `SmCylinderAxialStationary` and `SmCantileverEigenfrequency`).
 - `neigsactive` on an Eigenfrequency study step takes `"on"`/`"off"`, not `"log"` (validated on `SmCantileverEigenfrequency`).
+- To set the Lagrange polynomial order on a physics (p-refinement), call `physics().prop("ShapeProperty").set("order", "1/2/3/4")`. For SolidMechanics the parameter name is `order_displacement` and accepted values are `"1"`, `"2"`, `"3"`, `"4"`, `"2s"`, `"3s"` (`s` suffix = serendipity); `"order"` on `SolidMechanics` is rejected (validated on `SmCantileverBendingStationary`).
 
 ## Advanced recipes (geometry / material / mesh)
 
