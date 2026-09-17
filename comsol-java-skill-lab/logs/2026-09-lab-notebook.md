@@ -98,3 +98,19 @@
   `.gitignore`: `logs/*` + `!logs/*.md`（只入库台账）。约定写入 AGENTS.md。
 - **回归 (删减后)**: `python scripts/run.py sweep` **14/14 PASS**（runs/aggregate-summary.md）;
   删除案例的源码与验证脚本均已不在工作树，保留案例三处（src / verifications / skill examples）逐字节一致。
+
+## 2026-09-17 工具链修复: 子进程输出解码丢失 (comsol 工具输出 GBK)
+
+- **发现**: 精简后首次全回归的日志里出现 `UnicodeDecodeError: 'utf-8' codec can't decode byte 0xca`
+  (subprocess reader 线程崩溃), 编译输出被**静默丢空** (`build/classes/*.compile.stderr.log` 为 0 字节)。
+- **根因 (本机实测)**: COMSOL 自带 javac 在中文 Windows 上以 **GBK (cp936)** 输出中文提示
+  (`注: 某些输入文件使用或覆盖了已过时的 API。`); 而本机 Python 处于 UTF-8 模式
+  (`PYTHONUTF8=1` → `sys.flags.utf8_mode=1`, 故 `subprocess(text=True)` 按 UTF-8 解码)
+  → reader 线程抛异常, `proc.stdout/stderr` 变成 None, 日志被写成空文件。
+- **影响**: 编译/批处理/健康检查的中文诊断 (含中文报错) 会整段消失; `run_batch` 里
+  `write_text(proc.stdout)` 在 None 时还会抛 TypeError (被 sweep 的逐键 try 吞掉, 表现为难解的错误标记)。
+- **修复 (run.py, 4 处 subprocess.run)**: `text=True, encoding=locale.getencoding(), errors="replace"`,
+  并在写日志处加 `or ""` 兜底。`locale.getencoding()` = 本机控制台编码 (本机 cp936 → 中文可读;
+  UTF-8 机器上自动为 utf-8), 无需硬编码, 也不再丢输出。
+- **验证**: 修复后 `run.py compile` 无 traceback, `EcSquareStationary.compile.stderr.log` 162 字节且中文可读;
+  `run.py sweep --keys E1,T2,EcHollowCyl` 3/3 PASS; 随后全量 sweep 复核。

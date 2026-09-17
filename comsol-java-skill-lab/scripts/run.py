@@ -20,6 +20,7 @@ tier 结构:
 - src/physical/  仅流程可运行/物理合理性的案例
 """
 import json
+import locale
 import os
 import shutil
 import subprocess
@@ -130,7 +131,7 @@ def compile_all_sources(label="all"):
             cmd += ["-cp", str(api_jar)]
         cmd += ["-d", str(BUILD_DIR)] + [str(s) for s in all_sources]
         tool = "comsol-javac"
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding=locale.getencoding(), errors="replace")
         rc = proc.returncode
         out.write_text(proc.stdout or "", encoding="utf-8")
         err.write_text(proc.stderr or "", encoding="utf-8")
@@ -139,7 +140,8 @@ def compile_all_sources(label="all"):
         rc = 0
         for s in all_sources:
             p = subprocess.run(
-                [comp, str(s)], cwd=s.parent, capture_output=True, text=True
+                [comp, str(s)], cwd=s.parent, capture_output=True, text=True,
+                encoding=locale.getencoding(), errors="replace",
             )
             out.write_text(p.stdout, encoding="utf-8")
             err.write_text(p.stderr, encoding="utf-8")
@@ -185,11 +187,11 @@ def run_batch(class_name, run_dir, args, timeout=TIMEOUT_SEC):
     ]
 
     start = time.time()
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    proc = subprocess.run(cmd, capture_output=True, text=True, encoding=locale.getencoding(), errors="replace")
     elapsed = time.time() - start
 
-    (run_dir / "run.stdout.log").write_text(proc.stdout, encoding="utf-8")
-    (run_dir / "run.stderr.log").write_text(proc.stderr, encoding="utf-8")
+    (run_dir / "run.stdout.log").write_text(proc.stdout or "", encoding="utf-8")
+    (run_dir / "run.stderr.log").write_text(proc.stderr or "", encoding="utf-8")
 
     # 状态汇总
     batch_log = run_dir / "batch.log"
@@ -362,7 +364,7 @@ def _run_verification(key, csv_path, json_out, md_out):
     hc = Path(__file__).resolve().parent / "health_check.py"
     proc = subprocess.run(
         [_lab_python(), str(hc), key, str(csv_path), str(json_out), str(md_out)],
-        capture_output=True, text=True)
+        capture_output=True, text=True, encoding=locale.getencoding(), errors="replace")
     if proc.returncode != 0:
         print(f"[sweep] {key}: health_check rc={proc.returncode}\n"
               f"{proc.stdout}\n{proc.stderr}", file=sys.stderr)
