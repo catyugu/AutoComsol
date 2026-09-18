@@ -196,5 +196,9 @@
     - np=14 对 `EcTSmCube` 比 np=8 慢 (204.9 vs 175.7)。
 - **正确性**: np=8 / np=14 各跑 4 案例 (EcTSmCube, EcTSmBusbar, SmPlateHole, TFinArray) 回归,
   健康检查 4/4 PASS, 解析解容差内与 np=1 一致; 数值不受核数影响。
+- **收尾全回归 (np=8 默认)**: `python scripts/run.py sweep` **14/14 PASS**, batch.log 报
+  `Using 1 socket with 8 cores in total`; 各案例耗时合计 638 s (np=1 时 800 s),
+  墙钟 645 s vs 上次 np=1 的约 1170 s (约 1.8x), 提速主要来自 EcTSmCube (373 → 165 s)。
+  小案例 (E1/ET2/T1/T2 等) 单案例耗时反而上升 ~50%, 但总量小, 不影响结论。
 - **文档**: `machine-profile.md` (CPU/核数实测)、`commands.lock.md` (`-np` 约束)、
   `local-evidence-index.md` §21、`AGENTS.md` 回归纪律各补一条。
