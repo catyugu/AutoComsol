@@ -115,3 +115,86 @@
 - **验证**: 修复后 `run.py compile` 无 traceback, `EcSquareStationary.compile.stderr.log` 162 字节且中文可读;
   `run.py sweep --keys E1,T2,EcHollowCyl` 3/3 PASS; 随后全量 sweep **14/14 PASS**
   (日志无 traceback, `build/classes/sweep.compile.stderr.log` 133 字节中文正常)。
+
+## 2026-09-19 非标量场的有限元离散类型控制 + 新增 demonstration tier
+
+- 用户要求: 探索非标量场 (结构力学、频域电磁场等) 的有限元离散类型如何在 Java API 里控制。
+- **方法**: 先挖官方 .mph 的序列化模型 (1839 个, 全部模块) 定位 `ShapeProperty` 的键与合法值,
+  再用 4 个临时探针类 (ApiDiscProbe 1-4, 已删) 在真实模型上逐项验证。**未依赖任何记忆中的 API 名**。
+- **入口与键名**: `physics("<tag>").prop("ShapeProperty")` → `PhysicsProp`;
+  键 = `order_<场标识>`, 场标识 = `physics().field(tag).field()` (COMSOL 场名)。
+  **非标量场的分量由物理接口声明**: solid `displacement: u -> [u,v,w]`; emw `electricfield: E -> [Ex,Ey,Ez]`;
+  分量名不是键 (`order_u` 被拒)。**纠正旧记录**: 该入口无需反射 (`Physics.prop(String)` 与
+  `PhysicsProp.set(String,String)` 都在公开 API), SmCantileverBendingStationary 的反射调用已简化为直调并回归通过。
+- **合法离散码随接口族不同** (探针 `getAllowedPropertyValues` 实测, 括号为默认):
+    - SolidMechanics `order_displacement` = 1,2,2s,3,3s,4,4s,5 (2s); Shell 只有 1,2 (2)
+    - HeatTransfer/PressureAcoustics = 1,2,2s,3,3s,4,4s,5 (2); Electrostatics/ConductiveMedia = 1,2,3,4,5 (2, 无 's')
+    - InductionCurrents `order_magneticvectorpotential` = 1,2,3; MagneticFieldsCurrentsOnly = 1,2,3,4
+    - ElectromagneticWaves(FrequencyDomain) `order_electricfield` = 1,1t2,2,2t2,…,7,7t2 (2)
+    - 键名不是 `order_*` 的接口: BeamEnvelopes 与 BEM 用 `shapeorder`
+      (BEM = p11,p21,p22,p32,p33,p43,p44,p54,p55, 默认 p21)
+    - LaminarFlow 只有 `order_fluid` = 1..5 (1), `order_velocity`/`order_pressure` 被拒 (速度压力同阶)
+- **离散码语义 (dof 计数实测)**: `s` = serendipity — 单纯形上等于同阶 Lagrange
+  (3D 四面体 2/2s 都是 717), 四边形上更少 (2D 四边形 p=2→50 vs 2s→42);
+  `t2` = curl type 2 — **单纯形上也不同** (3D 四面体 emw 2→894 vs 2t2→1341; 2D 三角 2→115 vs 2t2→154)。
+  求解器日志对 2 与 2t2 都打印 "Geometry shape function: Quadratic Lagrange" — 日志不能区分, 要看 dof。
+- **数值对照**: EmwSlabSweepFrequency 同网格只改 `order_electricfield`:
+  p=1 → max|ΔS11dB| = 0.0064, max|ΔS21dB| = 0.0012; p=2 与 p=2t2 对解析解 4 位小数一致
+  (dof 61710 vs 92564) — 二次阶下两者在该网格上等价, 差异只在自由度数与单元族。
+- **旁证**: `MagneticFields` / `MagneticFieldsNoCurrents` / `MagneticAndElectricFields` 不是合法 op
+  (Unknown physics interface); 可用的是 `InductionCurrents` / `MagneticFieldsCurrentsOnly` /
+  `ElectricInductionCurrents` / `ConductiveMedia`。SolidMechanics 的 `AddMixedFormPressure` 接受 "1" 但
+  不新增压力场与 order 键 (该版本无 u/p 混合离散 API 面)。
+- **新增 demonstration tier (用户决策)**: `comsol-java-skill-lab/src/demonstration/` 专放 **API 演示型案例** —
+  只说明 API 用法, 无验证脚本、不进 REGISTRY/sweep; 命名 `<ApiTopic>Demonstration`;
+  `run.py` 的 `SRC_TIERS` 加入该目录 (可编译可运行), 目录内 README.md 记录 tier 约定。
+- **案例 FieldDiscretizationDemonstration**: 3D Block 上同时建 SolidMechanics / emw / HeatTransfer,
+  打印各接口的场清单与 `order_*` 键的当前值+合法值, 再逐项 set+读回
+  (solid 1→2s, emw 1→2t2, ht 3), 并演示 `component().sorder()` 与 `order_*` 是两个独立旋钮。
+  实测 `run.py all` rc=0, 17.2 s, batch.log 无错误标记。
+- **三处同步**: demonstration 案例同步到 `autocomsol/references/examples/demonstration/` (逐字节一致);
+  证据写入 `local-evidence-index.md` §20; skill 侧 `physics-api-recipes.md` 补全离散契约与陷阱,
+  `case-naming.md` 补 tier 与案例行, `SKILL.md` 路由加 demonstration 层。
+- **回归**: `python scripts/run.py sweep` 全量 **14/14 PASS** (含改动后的 SmCantileverBendingStationary)。
+
+## 2026-09-19 Java 格式化改为 clang-format (弃用 google-java-format)
+
+- **动机**: google-java-format 不可配置, 把 COMSOL 的长 builder 链
+  (`model.component(comp).physics("sm").feature("lemm1").set(...)`) 拆成每次调用一行、
+  还把 Javadoc 的列表/换行重排 (如 `<li>` 的 `</li>` 被挪位、代码示例行被合并), 可读性反而变差。
+- **方案 (本机实测)**:
+    - 仓库根新增 `.clang-format`: 两段配置 —— `Language: Java` (`BasedOnStyle: Google` +
+      `IndentWidth: 4` / `ContinuationIndentWidth: 8` / `ColumnLimit: 120` / `ReflowComments: false` /
+      `AllowShortFunctionsOnASingleLine: Empty` / `AllowShortIfStatementsOnASingleLine: AllIfsAndElse` /
+      `BinPackArguments: false` / `BinPackParameters: false` / `LineEnding: DeriveCRLF`)
+      与 `Language: Cpp` (保留当前默认 LLVM)。
+      **必须有 C++ 段**: clang-format 22 遇到不含 C++ 的配置会直接报
+      "Configuration file(s) do(es) not support C++" 并 rc=1, 会让 C++ 文件格式化失败。
+    - `LineEnding: DeriveCRLF`: 本机 git `core.autocrlf=true` 且 blob 存 CRLF, 工作树为 CRLF;
+      默认 `DeriveLF` 会把整文件改成 LF (git diff 全文件重写)。实测输入 CRLF/LF 均输出 CRLF。
+    - `AllowShortIfStatementsOnASingleLine: AllIfsAndElse`: 否则 clang-format 会把
+      `if (x) continue;` / `else y.add(d);` 逐条拆成两行, 净增行数。
+    - `clang-format.exe` = `E:\scoop_files\apps\llvm\current\bin\clang-format.exe` (22.1.8);
+      VSCodium 侧 `[java] editor.defaultFormatter = xaver.clang-format` + `clang-format.style = file`
+      (全局 settings.json 已改, 原 google-java-format 扩展保留未卸载)。
+- **结果**: 16 个 Java 源文件统一重排 (净 -约 300 行, 主要为链式调用合并与 if 单行化);
+  `src/` 与 `autocomsol/references/examples/` 逐字节一致, 行尾 CRLF。
+- **回归**: 格式化后 `python scripts/run.py sweep` 全量 **14/14 PASS**。
+
+## 2026-09-19 run.py 求解核数改为多核 (`-np`)
+
+- 用户要求: 单案例求解太慢, 提高 COMSOL 求解的并发数 (不是并发跑多个案例)。
+- **`-np auto` 不可用 (本机实测)**: comsolbatch 6.2 把它映射成非法 JVM 选项
+  `-XX:ParallelGCThreads=auto` → stdout 只有该报错, **exit=127 且不生成 batch.log**
+  (run.py 会把它记为 `csv missing` FAIL, 排查成本高)。必须传显式核数。
+- **实现**: `run_batch(..., np=COMSOL_NP)`, `COMSOL_NP = os.environ.get("COMSOL_NP") or min(8, cpu_count())`;
+  `run.py` 顶部与 `commands.lock.md` 记明约束。案例之间仍串行 (一个 batch 子进程), 不抢内存。
+- **交错 A/B 实测** (同案例同二进制交替 np=1 / np=8):
+    - `EcTSmCube` (最大案例): np=1 → 374.2 / 403.3 s; np=8 → 150.3 / 168.6 s (约 **2.4x**)。
+    - `EcTSmBusbar` (小案例): np=1 → 37.7 / 31.0 / 31.5 s; np=8 → 40.6 / 38.9 / 40.9 s —
+      小案例多核反而略慢, 故默认只设 8 核上限, 不追求"核越多越好"。
+    - np=14 对 `EcTSmCube` 比 np=8 慢 (204.9 vs 175.7)。
+- **正确性**: np=8 / np=14 各跑 4 案例 (EcTSmCube, EcTSmBusbar, SmPlateHole, TFinArray) 回归,
+  健康检查 4/4 PASS, 解析解容差内与 np=1 一致; 数值不受核数影响。
+- **文档**: `machine-profile.md` (CPU/核数实测)、`commands.lock.md` (`-np` 约束)、
+  `local-evidence-index.md` §21、`AGENTS.md` 回归纪律各补一条。

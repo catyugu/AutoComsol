@@ -2,13 +2,15 @@
 """
 run.py — COMSOL Java 实验封装（跨平台）
 用法:
-    python run.py compile <class-name>              # 编译 src/{analytic,physical}/<class>.java
+    python run.py compile <class-name>              # 编译 src/<tier>/<class>.java
     python run.py run <class-name> <run-dir> [args...]   # 批处理运行
     python run.py all <class-name> <run-dir> [args...]   # 编译+运行
-    python run.py sweep [--keys K1,K2] [--skip-pass] [--runs-root DIR]  # 全案例回归
+    python run.py sweep [--keys K1,K2] [--skip-pass] [--jobs N] [--runs-root DIR]  # 全案例回归
 
 不硬编码 COMSOL 安装路径：通过 PATH 发现 comsolcompile/comsolbatch，
 或通过环境变量 COMSOL_COMPILE / COMSOL_BATCH 指定。
+求解核数由 comsolbatch 的 -np 控制，默认 min(8, CPU 核数)，
+可用环境变量 COMSOL_NP 覆盖（如 COMSOL_NP=14）；案例之间仍串行执行。
 
 行为:
 - 每个运行写入独立目录（run-dir），输出 stdout/stderr/batch.log/status.json
@@ -16,8 +18,9 @@ run.py — COMSOL Java 实验封装（跨平台）
 - status.json 记录 compile_rc/batch_rc/mph_exists/log_flags
 
 tier 结构:
-- src/analytic/  有解析解验证的案例
-- src/physical/  仅流程可运行/物理合理性的案例
+- src/analytic/      有解析解验证的案例
+- src/physical/      仅流程可运行/物理合理性的案例
+- src/demonstration/ 纯 API 用法演示案例 (无验证脚本, 不进 REGISTRY/sweep)
 """
 import json
 import locale
@@ -36,8 +39,15 @@ from health_check import REGISTRY
 SRC_DIR = Path(__file__).resolve().parent.parent / "src"
 BUILD_DIR = Path(__file__).resolve().parent.parent / "build" / "classes"
 TIMEOUT_SEC = 600  # 默认单次求解超时（秒）
+# comsolbatch 的求解核数（-np <核数>）: 单个案例内部的并行度。
+# 案例之间仍串行（每个案例一个 batch 子进程），避免多个案例争抢内存。
+# 不能传 "auto": 本机 comsolbatch 6.2 把它映射成非法 JVM 选项
+# (-XX:ParallelGCThreads=auto), 启动即失败 (exit 127, 无 batch.log), 必须给显式核数。
+# 上限 8 来自本机实测 (14 物理核): 最大案例 EcTSmCube 在 np=8 最快, np=14 反而更慢。
+COMSOL_NP = os.environ.get("COMSOL_NP") or str(min(8, os.cpu_count() or 1))
 # 源码按验证 tier 分层; 编译时合并编译全部 tier（共享辅助类自动包含）
-SRC_TIERS = [SRC_DIR / "analytic", SRC_DIR / "physical"]
+# demonstration tier 只有 API 演示类, 不注册验证脚本 (不进 sweep)
+SRC_TIERS = [SRC_DIR / "analytic", SRC_DIR / "physical", SRC_DIR / "demonstration"]
 RUNS_ROOT = Path(__file__).resolve().parent.parent / "runs"
 
 
@@ -131,7 +141,13 @@ def compile_all_sources(label="all"):
             cmd += ["-cp", str(api_jar)]
         cmd += ["-d", str(BUILD_DIR)] + [str(s) for s in all_sources]
         tool = "comsol-javac"
-        proc = subprocess.run(cmd, capture_output=True, text=True, encoding=locale.getencoding(), errors="replace")
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding=locale.getencoding(),
+            errors="replace",
+        )
         rc = proc.returncode
         out.write_text(proc.stdout or "", encoding="utf-8")
         err.write_text(proc.stderr or "", encoding="utf-8")
@@ -140,8 +156,12 @@ def compile_all_sources(label="all"):
         rc = 0
         for s in all_sources:
             p = subprocess.run(
-                [comp, str(s)], cwd=s.parent, capture_output=True, text=True,
-                encoding=locale.getencoding(), errors="replace",
+                [comp, str(s)],
+                cwd=s.parent,
+                capture_output=True,
+                text=True,
+                encoding=locale.getencoding(),
+                errors="replace",
             )
             out.write_text(p.stdout, encoding="utf-8")
             err.write_text(p.stderr, encoding="utf-8")
@@ -149,13 +169,18 @@ def compile_all_sources(label="all"):
                 rc = p.returncode
                 break
         tool = "comsolcompile"
-    print(f"[compile] tool={tool} rc={rc} sources={len(all_sources)} "
-          f"class_dir={BUILD_DIR}")
+    print(
+        f"[compile] tool={tool} rc={rc} sources={len(all_sources)} "
+        f"class_dir={BUILD_DIR}"
+    )
     return rc, True
 
 
-def run_batch(class_name, run_dir, args, timeout=TIMEOUT_SEC):
-    """运行 comsolbatch。返回 (rc, status_dict)。"""
+def run_batch(class_name, run_dir, args, timeout=TIMEOUT_SEC, np=COMSOL_NP):
+    """运行 comsolbatch。返回 (rc, status_dict)。
+
+    np: 求解核数（-np），默认取 COMSOL_NP 环境变量，未设时 "auto"（COMSOL 自选）。
+    """
     comp, batch = get_comsol_commands()
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -181,13 +206,19 @@ def run_batch(class_name, run_dir, args, timeout=TIMEOUT_SEC):
         "-stoptime",
         str(timeout),
         "-np",
-        "1",
+        str(np),
         # target arguments（紧跟在 options 之后，传给 Java main 的 args）
         *args,
     ]
 
     start = time.time()
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding=locale.getencoding(), errors="replace")
+    proc = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding=locale.getencoding(),
+        errors="replace",
+    )
     elapsed = time.time() - start
 
     (run_dir / "run.stdout.log").write_text(proc.stdout or "", encoding="utf-8")
@@ -235,16 +266,16 @@ def key_to_class(key):
     base = os.path.basename(script).replace(".py", "")
     cls = "".join(p.title() for p in base.split("_"))
     if cls.startswith("EcTsm"):
-        cls = "EcTSm" + cls[len("EcTsm"):]
+        cls = "EcTSm" + cls[len("EcTsm") :]
     return cls
 
 
 # 需额外 target args 的案例: 键 → 追加的文件名 (相对 run_dir)。
 # 约定 args[0]=mph, args[1]=field.csv (验证脚本读取), 追加项从 args[2] 起。
 SWEEP_EXTRA_ARGS = {
-    "TFinArray": ["TFinArray.png"],          # args[2] = 图像导出路径 (探针: 必须绝对)
-    "SmCantEig": ["modes.csv"],              # args[2] = 模态位移导出路径
-    "EcHollowCyl": ["mesh.mphtxt"],          # args[2] = 网格导出路径 (验证脚本读同目录)
+    "TFinArray": ["TFinArray.png"],  # args[2] = 图像导出路径 (探针: 必须绝对)
+    "SmCantEig": ["modes.csv"],  # args[2] = 模态位移导出路径
+    "EcHollowCyl": ["mesh.mphtxt"],  # args[2] = 网格导出路径 (验证脚本读同目录)
 }
 
 
@@ -268,8 +299,10 @@ def run_sweep(keys=None, skip_pass=False, runs_root=None):
     if keys:
         missing = [k for k in keys if k not in REGISTRY]
         if missing:
-            print(f"ERROR: unknown keys {missing}. Known: {sorted(REGISTRY)}",
-                  file=sys.stderr)
+            print(
+                f"ERROR: unknown keys {missing}. Known: {sorted(REGISTRY)}",
+                file=sys.stderr,
+            )
             sys.exit(2)
         order = [k for k in REGISTRY if k in keys]
     else:
@@ -279,8 +312,10 @@ def run_sweep(keys=None, skip_pass=False, runs_root=None):
     print(f"[sweep] compile all sources ({len(SRC_TIERS)} tiers) ...")
     rc, _ = compile_all_sources(label="sweep")
     if rc != 0:
-        print(f"[sweep] COMPILE FAILED rc={rc} (fix failing source then retry).",
-              file=sys.stderr)
+        print(
+            f"[sweep] COMPILE FAILED rc={rc} (fix failing source then retry).",
+            file=sys.stderr,
+        )
         return 1
 
     rows = []
@@ -305,26 +340,43 @@ def run_sweep(keys=None, skip_pass=False, runs_root=None):
         try:
             class_name = key_to_class(key)
             print(f"[sweep] run {key} (class {class_name}) -> {run_dir}")
-            args = [str(run_dir / f"{class_name}.mph"),
-                    str(run_dir / "field.csv")]
+            args = [str(run_dir / f"{class_name}.mph"), str(run_dir / "field.csv")]
             args += [str(run_dir / f) for f in SWEEP_EXTRA_ARGS.get(key, [])]
             _, status = run_batch(class_name, run_dir, args)
         except SystemExit as e:
-            status = {"batch_rc": e.code if isinstance(e.code, int) else -1,
-                      "elapsed_sec": 0, "mph_exists": False,
-                      "batchlog_exists": False, "log_flags": "compile_or_run_error"}
+            status = {
+                "batch_rc": e.code if isinstance(e.code, int) else -1,
+                "elapsed_sec": 0,
+                "mph_exists": False,
+                "batchlog_exists": False,
+                "log_flags": "compile_or_run_error",
+            }
         except Exception as e:  # noqa: BLE001 — 每键隔离，失败不中断 sweep
-            status = {"batch_rc": -1, "elapsed_sec": 0, "mph_exists": False,
-                      "batchlog_exists": False, "log_flags": f"error: {e}"}
+            status = {
+                "batch_rc": -1,
+                "elapsed_sec": 0,
+                "mph_exists": False,
+                "batchlog_exists": False,
+                "log_flags": f"error: {e}",
+            }
 
         csv_path = run_dir / "field.csv"
         if not csv_path.exists():
             # run_batch 默认 args 落在 run-dir/field.csv；若不存在则无法验证
             print(f"[sweep] {key}: csv not found {csv_path}", file=sys.stderr)
-            rows.append(_summary_row(key, script, {
-                "experiment": key, "overall_status": "FAIL",
-                "reason": "csv missing", "elapsed_sec": status.get("elapsed_sec", 0),
-                "log_flags": status.get("log_flags")}))
+            rows.append(
+                _summary_row(
+                    key,
+                    script,
+                    {
+                        "experiment": key,
+                        "overall_status": "FAIL",
+                        "reason": "csv missing",
+                        "elapsed_sec": status.get("elapsed_sec", 0),
+                        "log_flags": status.get("log_flags"),
+                    },
+                )
+            )
             any_fail = True
             continue
 
@@ -332,8 +384,11 @@ def run_sweep(keys=None, skip_pass=False, runs_root=None):
         try:
             health = json.loads(json_out.read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            health = {"experiment": key, "overall_status": "FAIL",
-                      "reason": "health.json unreadable"}
+            health = {
+                "experiment": key,
+                "overall_status": "FAIL",
+                "reason": "health.json unreadable",
+            }
         health.setdefault("elapsed_sec", status.get("elapsed_sec", 0))
         health.setdefault("log_flags", status.get("log_flags"))
         if ver_rc != 0 or health.get("overall_status") != "PASS":
@@ -364,10 +419,17 @@ def _run_verification(key, csv_path, json_out, md_out):
     hc = Path(__file__).resolve().parent / "health_check.py"
     proc = subprocess.run(
         [_lab_python(), str(hc), key, str(csv_path), str(json_out), str(md_out)],
-        capture_output=True, text=True, encoding=locale.getencoding(), errors="replace")
+        capture_output=True,
+        text=True,
+        encoding=locale.getencoding(),
+        errors="replace",
+    )
     if proc.returncode != 0:
-        print(f"[sweep] {key}: health_check rc={proc.returncode}\n"
-              f"{proc.stdout}\n{proc.stderr}", file=sys.stderr)
+        print(
+            f"[sweep] {key}: health_check rc={proc.returncode}\n"
+            f"{proc.stdout}\n{proc.stderr}",
+            file=sys.stderr,
+        )
     return proc.returncode
 
 
@@ -392,18 +454,24 @@ def _write_summary(summary, runs_root):
     """写出 aggregate-summary.json + aggregate-summary.md。"""
     json_path = runs_root / "aggregate-summary.json"
     md_path = runs_root / "aggregate-summary.md"
-    json_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False),
-                         encoding="utf-8")
-    lines = ["# Aggregate Sweep Summary", "",
-             f"**Overall: {summary['aggregate_status']}**  "
-             f"({summary['pass']}/{summary['total']} PASS)", ""]
+    json_path.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    lines = [
+        "# Aggregate Sweep Summary",
+        "",
+        f"**Overall: {summary['aggregate_status']}**  "
+        f"({summary['pass']}/{summary['total']} PASS)",
+        "",
+    ]
     lines.append("| key | tier | status | checks | failed | elapsed(s) | flags |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- |")
     for r in summary["cases"]:
         lines.append(
             f"| {r['key']} | {r['tier']} | {r['status']} | {r['num_checks']} | "
             f"{','.join(r['failed_checks']) or '-'} | {r['elapsed_sec']} | "
-            f"{r['log_flags']} |")
+            f"{r['log_flags']} |"
+        )
     md_path.write_text("\n".join(lines), encoding="utf-8")
 
 

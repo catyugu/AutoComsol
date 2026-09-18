@@ -173,3 +173,62 @@
   `# Elements`; 二阶单元中点节点排在角点之后 (tri2 边序 (0,1),(1,2),(2,0))。
 - 布尔切片: `Difference(cyl, cyl)` 后每个圆柱面是 4 片 (探针面清单: 1,2,7,10 = r_out; 5,6,8,9 = r_in;
   3,4 = 端面)。只选 1 片 → BC 只覆盖部分边界, 电位场偏差 0.5 V 且 COMSOL 无任何报错。
+
+## 20. 非标量场的有限元离散类型 API (2026-09-19, ApiDiscProbe 1-4 临时探针)
+
+- 入口: `physics("<tag>").prop("ShapeProperty")` 返回 `PhysicsProp`（`Physics.prop(String)` 在公开
+  API 里，**无需反射**；`set(String,String)` 也是接口方法 — 早前 SmCantileverBendingStationary 里的
+  反射调用已按此简化）。键名 = `order_<场标识>`；同节点还有 `boundaryFlux_<场>` / `boundaryFluxSmooth_<场>`
+  / `valueType` / `frame` / `hiddenRowLabels`。自省: `prop.properties()` / `hasProperty(key)` / `getString(key)`
+  / `getAllowedPropertyValues(key)`。
+- **非标量场的分量由物理接口声明**: `physics(tag).field(tag2)` → `PhysicsField.field()`（COMSOL 场名，
+  即 `order_` 后缀用的标识）、`.fieldname()`（分量名）、`.component()`（分量）。实测:
+  SolidMechanics `displacement: u -> [u, v, w]`; emw `electricfield: E -> [Ex, Ey, Ez]`;
+  HeatTransfer `temperature: T -> [T]`。分量名不是合法键（`order_u` 被拒）。
+- **合法离散码随接口族不同**（探针 getAllowedPropertyValues 实测, 括号内为默认值）:
+    - SolidMechanics `order_displacement` = 1,2,2s,3,3s,4,4s,5 (2s)；Shell `order_displacement` = 1,2 (2)
+    - HeatTransfer `order_temperature` = 1,2,2s,3,3s,4,4s,5 (2)；PressureAcoustics `order_pressure` 同
+    - Electrostatics / ConductiveMedia `order_electricpotential` = 1,2,3,4,5 (2, 无 's')
+    - InductionCurrents `order_magneticvectorpotential` = 1,2,3；MagneticFieldsCurrentsOnly = 1,2,3,4；
+      ElectricInductionCurrents = A:1,2,3 + V:1,2,3,4
+    - ElectromagneticWaves / ...FrequencyDomain `order_electricfield` = 1,1t2,2,2t2,…,7,7t2 (2)
+    - ElectromagneticWavesBeamEnvelopes 键名是 **`shapeorder`**（无 order_ 前缀）= 1,1t2,2,2t2,3,3t2 (2)
+    - 边界元接口 (ElectrostaticsBoundaryElements) 键名 **`shapeorder`** = p11,p21,p22,p32,p33,p43,p44,p54,p55 (p21)
+    - LaminarFlow 只有 `order_fluid` = 1,2,3,4,5 (1)；`order_velocity` / `order_pressure` 被拒（速度压力同阶）
+    - 不连续场 (HeatTransfer 辐射等) 键名带 `_disc` 后缀，允许值含 0（如 `order_incidentradiation_disc` = 1..5）
+- **离散码语义（dof 计数实证, batch.log "Number of degrees of freedom solved for"）**:
+    - `s` = serendipity: **单纯形上等于同阶 Lagrange，四边形/六面体上更少**。2D 四边形 4 单元 plane stress:
+      p=1→18, p=2→50, **2s→42**, p=3→98；三角 14 单元: 2→74, 2s→74；3D 四面体 106 单元: 2→717, 2s→717。
+    - `t2` = curl type 2（H(curl) 场）: **单纯形上也不同**。2D 三角 14 单元 emw: 1→37, 2→115, **2t2→154**；
+      3D 四面体 106 单元: 1→193, 2→894, **2t2→1341**, 3→2421。求解器日志对 2 与 2t2 **都**只打印
+      "Geometry shape function: Quadratic Lagrange"，日志无法区分两者，须看 dof 数。
+    - 数值对照 (EmwSlabSweepFrequency 同网格只改阶次): p=1 max|ΔS11dB|=0.0064 / max|ΔS21dB|=0.0012；
+      p=2 与 p=2t2 都 ≈0（对解析解 4 位小数一致），dof 61710 (2) vs 92564 (2t2)。
+- **ACDC 磁接口 op 字符串实测**: `InductionCurrents` / `MagneticFieldsCurrentsOnly` /
+  `ElectricInductionCurrents` / `ConductiveMedia` 可用；`MagneticFields`、`MagneticFieldsNoCurrents`、
+  `MagneticAndElectricFields` 报 "Unknown physics interface"。官方 .mph 里出现过的 `MagnetostaticsNoCurrents`
+  未做探针（仅挖掘证据）。
+- **SolidMechanics 混合格式**: `prop("AddMixedFormPressure").set("AddMixedFormPressure","1")` 被接受，
+  但**不新增压力场、不新增 order 键**（field 列表不变, `hasProperty("order_pressure")=false`）——
+  该版本无 u/p 混合离散的 API 面。
+- **挖掘离散键的通用方法**（官方 .mph 全库 1839 个）:
+  `re.findall(r'param="(order_[A-Za-z_0-9]+)" value="1\|1,\'([^\']*)\'"', dmodel)`；
+  跨模块的 `shapeorder` 键（BEM/beam envelopes 等）用
+  `re.findall(r'param="shapeorder[a-zA-Z_0-9]*" value="[^"]*"', dmodel)` 定位物理接口 op。
+
+## 21. comsolbatch 求解核数 `-np` (2026-09-19 实测)
+
+- **`-np auto` 不可用**: comsolbatch 6.2 把它映射成非法 JVM 选项
+  `-XX:ParallelGCThreads=auto` → stdout 只有该报错, **exit=127, 不生成 batch.log**。
+  必须传显式核数 (`-np 8` 生效, batch.log 报 `Using 1 socket with 8 cores in total`)。
+- **交错 A/B 实测 (本机 14 物理核 / 20 逻辑核, 16 GB)**: 同案例同二进制交替 np=1 / np=8 跑多轮,
+  取 status.json 的 elapsed_sec:
+    - `EcTSmCube` (最大案例, 3 场瞬态耦合): np=1 → 374.2 / 403.3 s; np=8 → 150.3 / 168.6 s
+      → **约 2.4x 加速**, 两轮一致。
+    - `EcTSmBusbar` (3 场稳态, 小): np=1 → 37.7 / 31.0 / 31.5 s; np=8 → 40.6 / 38.9 / 40.9 s
+      → **小案例多核反而略慢** (线程/装配开销 > 并行收益), 且两档各自离散度都小于档间差异。
+    - 单次测量的 `SmPlateHole` 67.8 (np=1) → 91.8 (np=8) → 42.8 (np=14)、
+      `TFinArray` 47.9 → 29.4 → 34.9 属同一现象, 不能只看单次数字。
+    - np=14 对 `EcTSmCube` 反而比 np=8 慢 (204.9 vs 175.7), 故默认核数上限取 8。
+- **数值不受影响**: np=8 与 np=14 的 4 案例回归健康检查全 PASS (解析解容差内), 与 np=1 同结论。
+- **案例之间仍串行**: 一个案例一个 batch 子进程, 避免多个案例同时抢内存 (最大案例峰值约 4 GB)。

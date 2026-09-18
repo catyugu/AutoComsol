@@ -61,11 +61,15 @@ Batch options 关键项:
 
 ```bash
 comsolbatch -inputfile <编译后的Class路径> -outputfile <输出.mph路径> \
-  -batchlog <日志路径> -study std1 -np 1 -stoptime 600
+  -batchlog <日志路径> -study std1 -np 8 -stoptime 600
 ```
 
 - inputfile 接受 .mph 或 .class（帮助原文: "The input file name (.mph or .class)"）
 - 批处理类要求: public class + `public static void main(String[] args)` 或实现 `com.comsol.model.util.ModelUtil` 标准入口
+- **`-np` 必须是显式核数**：`-np auto` 在本机 6.2 上启动即失败
+  （stdout 仅 `Improperly specified VM option 'ParallelGCThreads=auto'`，exit=127，无 batch.log）。
+  实测 `-np 8` 正常，batch.log 报 `Using 1 socket with 8 cores in total`。
+  run.py 默认 `min(8, CPU 核数)`，可用环境变量 `COMSOL_NP` 覆盖。
 
 ## 通用调用注意
 

@@ -13,15 +13,18 @@
 
 ## 目录分层约定
 
-- 案例按验证严谨度分两层（`src/`、`scripts/verifications/`、`autocomsol/references/examples/` 下均同构）:
+- 案例按验证严谨度分三层（`src/`、`scripts/verifications/`、`autocomsol/references/examples/` 下均同构）:
     - `analytic/` — 有解析解验证的案例
     - `physical/` — 无解析解、仅流程可运行/物理合理性的案例
-- 有解析解的案例进 analytic 层；无解析解时才进 physical 层。
+    - `demonstration/` — 纯 API 用法演示案例（只说明 API 入口/键名/合法取值，无验证脚本、
+      不进 REGISTRY/sweep；命名 `<ApiTopic>Demonstration`；只在 `src/` 与 `references/examples/` 两处同步）
+- 有解析解的案例进 analytic 层；无解析解时才进 physical 层；只为说明 API 用法、不做验证的进 demonstration 层。
 
 ## 回归与探针纪律
 
 - 全案例回归用 `python scripts/run.py sweep`（复用 `scripts/health_check.py` 的 REGISTRY 为单一事实源，
   逐键 编译→运行→健康检查→聚合 `runs/aggregate-summary.json/md`；支持 `--keys/--skip-pass`）。
+  案例之间串行，单案例内部按 `-np`（默认 `min(8, CPU 核数)`，可用环境变量 `COMSOL_NP` 覆盖）多核求解。
   新增案例三处同步后，必须 `run.py sweep` 全回归通过。
 - 任何未经验证的新 COMSOL API 字符串，先按 `autocomsol/references/api-validation-probes.md` 验证
   （jar 类清单 / 挖掘官方 .mph / 临时探针），再写进正式案例；探针类不入库。
