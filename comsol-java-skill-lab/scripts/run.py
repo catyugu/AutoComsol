@@ -42,9 +42,17 @@ TIMEOUT_SEC = 600  # 默认单次求解超时（秒）
 # comsolbatch 的求解核数（-np <核数>）: 单个案例内部的并行度。
 # 案例之间仍串行（每个案例一个 batch 子进程），避免多个案例争抢内存。
 # 不能传 "auto": 本机 comsolbatch 6.2 把它映射成非法 JVM 选项
-# (-XX:ParallelGCThreads=auto), 启动即失败 (exit 127, 无 batch.log), 必须给显式核数。
+# (-XX:ParallelGCThreads=auto), 启动即失败 (exit 127, 无 batch.log) —— 而 sweep 只会看到
+# "csv missing" FAIL, 与求解失败无法区分, 所以在入口就挡住非数字取值。
 # 上限 8 来自本机实测 (14 物理核): 最大案例 EcTSmCube 在 np=8 最快, np=14 反而更慢。
 COMSOL_NP = os.environ.get("COMSOL_NP") or str(min(8, os.cpu_count() or 1))
+if not COMSOL_NP.isdigit():
+    print(
+        f"ERROR: COMSOL_NP must be a core count (got {COMSOL_NP!r}); "
+        f"comsolbatch maps non-numeric values to an invalid JVM option and fails at start.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
 # 源码按验证 tier 分层; 编译时合并编译全部 tier（共享辅助类自动包含）
 # demonstration tier 只有 API 演示类, 不注册验证脚本 (不进 sweep)
 SRC_TIERS = [SRC_DIR / "analytic", SRC_DIR / "physical", SRC_DIR / "demonstration"]
