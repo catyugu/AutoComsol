@@ -10,11 +10,17 @@
 
 ## Tier 分层
 
-案例按验证严谨度分两层，对应 `src/`、`scripts/verifications/` 下的子目录与 skill 的
+案例按验证严谨度分三层，对应 `src/`、`scripts/verifications/` 下的子目录与 skill 的
 `references/examples/` 同构:
 
 - **analytic/** — 有解析解验证的案例（验证脚本含显式解析解）。新案例尽量进入此层。
 - **physical/** — 无解析解、仅验证流程可运行性或大体物理合理性的案例（如母线板 `EcTSmBusbarStationary`、编译基线 `BaselineModel`）。
+- **demonstration/** — 纯 API 用法演示案例：只说明 API 入口/键名/合法取值/读回方式，
+  **无验证脚本、不进 REGISTRY/sweep**；命名 `<ApiTopic>Demonstration`；只在 `src/` 与 skill 的
+  `references/examples/demonstration/` 两处同步（如 `FieldDiscretizationDemonstration`）。
+
+> 完整案例清单以 skill 的 `autocomsol/references/case-naming.md` 为准（随案例增删同步维护）；
+> 本文件只保留命名规则与 tier 判据。
 
 示例:
 

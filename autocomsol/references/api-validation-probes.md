@@ -55,6 +55,25 @@ re.findall(r'op="(PlotGroup[A-Za-z0-9]*)"', d)    # → 绘图组（PlotGroup1D/
 | 绘图组 `PlotGroup1D/2D/3D` | 多个官方模型 |
 | 导出 `ImageExport` 接口类 | `com.comsol.api_1.0.0.jar` |
 
+### 2b. 挖掘离散阶次键（physics `ShapeProperty`）
+
+物理场的离散阶次不写在几何/网格里，而是物理接口节点上的 `PhysicsProp tag="ShapeProperty"`：
+
+```python
+import zipfile, re
+z = zipfile.ZipFile(r".../applications/RF_Module/Antennas/conical_antenna.mph")
+d = z.read("dmodel.xml").decode("utf-8", errors="replace")
+# 键名 + 合法值（官方模型只会出现合法值）: order_<场标识>
+re.findall(r'param="(order_[A-Za-z_0-9]+)" value="1\|1,\'([^\']*)\'"', d)
+# 不带 order_ 前缀的接口（BEM / Beam Envelopes）用 shapeorder
+re.findall(r'param="(shapeorder[a-zA-Z_0-9]*)" value="1\|1,\'([^\']*)\'"', d)
+# 接口 op 与 order 键的归属: 先定位 <Physics op="..."> 再取其后的 ShapeProperty
+```
+
+全库扫一遍（`applications/**/*.mph`，1839 个）即可得到各接口族的键名与合法码分布；
+但**默认值与拒绝行为必须靠探针**（第 3 步）拿：`prop(key)` 的当前值、
+`getAllowedPropertyValues(key)` 的完整清单、以及非法码的报错文本。
+
 ### 3. 临时探针法（最终权威，拿"行为 + 精确字符串 + 属性名"）
 
 jar / 挖掘只能证明"字符串存在于某个模型"，Java 调用是否成立、属性名是否对，
@@ -104,7 +123,7 @@ src 下编译会进 build/classes，跑完即删）。
 在以下任一情形**必须**先跑探针/挖掘，不得直接写进正式案例：
 
 1. 该字符串未出现在 references/ 任何案例或映射速查中
-2. 该字符串只出现在 case-naming.md 但无 "validated on <Case>" 标记
+2. 该字符串只出现在 case-naming.md 但无 "validated on \<Case\>" 标记
 3. 跨版本 / 跨模块可用性存疑（COMSOL 字符串随版本与许可证模块变化）
 4. 同概念多个候选名（如 `Array` vs `Pattern`、`Eigenfrequency` vs `Eigenvalue`、
    `HeatTransfer` vs `HeatTransferInSolids`）——已证伪的候选一并记入 pitfalls

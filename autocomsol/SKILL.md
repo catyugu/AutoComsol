@@ -11,7 +11,7 @@ Create a new COMSOL Java simulation from a user requirement. Treat the bundled c
 
 1. Translate the request into geometry, materials, physics, boundary conditions, study type, outputs, and acceptance criteria.
 2. Read `references/case-naming.md` and choose a compliant new case name. Naming is a hard gate — `<PhysicsPrefix><ModelDescription><StudyType>` only; no study-irrelevant suffixes (e.g. `Order`, `V2`, `Test`). Re-pick before writing any Java if the first attempt drifts.
-3. Select the closest complete Java reference from `references/examples/analytic/` (verified API patterns) or `references/examples/physical/` (flow / geometry patterns); read the whole file before reusing its nontrivial API patterns.
+3. Select the closest complete Java reference from `references/examples/analytic/` (verified API patterns), `references/examples/physical/` (flow / geometry patterns), or `references/examples/demonstration/` (pure API-usage samples, no validation); read the whole file before reusing its nontrivial API patterns.
 4. Read the applicable reference below before implementing unfamiliar API calls.
 5. For unfamiliar API strings (anything not already validated in `references/physics-api-recipes.md` or another case), probe first per `references/api-validation-probes.md` — mine a representative `.mph` for the exact tag, then run a temporary scratch probe, then delete the probe class before committing.
 6. Create a new Java model. Preserve proven patterns, but adapt parameters, geometry, selections, materials, studies, exports, and checks to the requested problem. When demonstrating a new API, default to a single fixed configuration that exercises it cleanly — avoid building parametric sweeps or factor machinery around a not-yet-trusted call.
@@ -47,6 +47,6 @@ Prefer an analytical solution. If none is suitable, combine independent checks s
 
 - Do not invent COMSOL interface names, feature IDs, property names, or coupling tags. Find local evidence or run a minimal probe first.
 - Do not alter a reference case merely to satisfy a new request; create a distinct case.
-- Place a new case with an analytical-solution check in `references/examples/analytic/`; place a case without an analytical solution (flow-runnability or physical-reasonableness only) in `references/examples/physical/`.
+- Place a new case with an analytical-solution check in `references/examples/analytic/`; place a case without an analytical solution (flow-runnability or physical-reasonableness only) in `references/examples/physical/`; place a pure API-usage sample with no validation in `references/examples/demonstration/`.
 - Do not embed executable wrappers, installation paths, or runtime dependencies in this skill.
 - Keep full Java references intact. Their value is that they are known-good, complete API examples.
