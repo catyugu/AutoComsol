@@ -27,7 +27,6 @@ import com.comsol.model.util.ModelUtil;
  * 参数: args[0]=mph 保存路径, args[1]=CSV 导出路径
  */
 public class TmSlabNonlinear {
-
     public static void main(String[] args) throws Exception {
         Model model = ModelUtil.create("Model");
 

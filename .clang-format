@@ -1,0 +1,27 @@
+# Java 代码格式化用 clang-format（VSCodium: [java] editor.defaultFormatter = xaver.clang-format）。
+#
+# 不用 google-java-format: 它不可配置, 会把 COMSOL 的长 builder 链
+# (model.component(comp).physics("sm").feature("lemm1").set(...)) 拆成每次调用一行,
+# 还会重排 Javadoc 注释的换行。clang-format 保持链式调用与注释原样, 只按列宽 120 折行。
+#
+# 用法: clang-format -i --style=file <file>.java
+
+---
+Language: Java
+BasedOnStyle: Google
+IndentWidth: 4
+ContinuationIndentWidth: 8
+ColumnLimit: 120
+ReflowComments: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+BinPackArguments: false
+BinPackParameters: false
+LineEnding: DeriveCRLF
+
+# 本文件也覆盖 C++: clang-format 遇到不含 C++ 段的配置会直接报错,
+# 故显式写出当前默认 (无配置文件时即 LLVM)。
+---
+Language: Cpp
+BasedOnStyle: LLVM
+...

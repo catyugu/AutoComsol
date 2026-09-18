@@ -9,10 +9,10 @@ public class TFinArrayStationary {
         String comp = "comp1";
         // 几何参数
         double baseX = 0.05, baseY = 0.02, baseZ = 0.005; // 基板尺寸
-        double finT = 0.001, finY = baseY, finL = 0.10;   // 翅厚(x)/翅深(y)/翅高(z)
-        double pitch = 0.0075;                             // 翅片间距
-        int nFin = 5;                                      // 翅片数
-        double x0 = 0.005;                                 // 首个翅片位置
+        double finT = 0.001, finY = baseY, finL = 0.10; // 翅厚(x)/翅深(y)/翅高(z)
+        double pitch = 0.0075; // 翅片间距
+        int nFin = 5; // 翅片数
+        double x0 = 0.005; // 首个翅片位置
         // 物性 (孤立翅 1D 解: k=200, h=25, m=16.2, mL=1.62, Bi_c=6.3e-5)
         double k = 200.0, h = 25.0;
         double T0 = 350.0, Tinf = 293.0;
@@ -46,7 +46,8 @@ public class TFinArrayStationary {
 
         // 材料 (全域)
         model.component(comp).material().create("mat1", "Common");
-        model.component(comp).material("mat1").propertyGroup("def").set("thermalconductivity", new String[][] {{"k_fin"}});
+        model.component(comp).material("mat1").propertyGroup("def").set(
+                "thermalconductivity", new String[][] {{"k_fin"}});
 
         // 传热
         model.component(comp).physics().create("ht", "HeatTransfer", "geom1");
@@ -144,7 +145,11 @@ public class TFinArrayStationary {
         for (int f = 1; f <= n; f++) {
             // 排除 except
             boolean skip = false;
-            for (int e : except) if (e == f) { skip = true; break; }
+            for (int e : except)
+                if (e == f) {
+                    skip = true;
+                    break;
+                }
             if (skip) continue;
             // 仅外部面 (邻接 1 域); getUpDown[1][f-1] = 面 f 的域或 -1
             if (faceDom != null && f - 1 < faceDom.length && faceDom[f - 1] < 0) continue;

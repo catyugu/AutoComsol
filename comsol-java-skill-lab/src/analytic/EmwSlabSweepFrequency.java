@@ -15,7 +15,6 @@ import com.comsol.model.util.ModelUtil;
  * args[1]=CSV
  */
 public class EmwSlabSweepFrequency {
-
     public static void main(String[] args) throws Exception {
         Model model = ModelUtil.create("Model");
         String comp = "comp1";
@@ -94,12 +93,9 @@ public class EmwSlabSweepFrequency {
 
         // 面分类: 按面心坐标 (端口 z 极端, 周期面 x/y 侧)
         double hp = 0.010 / 2, hz = (2 * 0.015 + 0.006) / 2;
-        java.util.List<Integer> port1F = new java.util.ArrayList<>(),
-                port2F = new java.util.ArrayList<>();
-        java.util.List<Integer> xMinF = new java.util.ArrayList<>(),
-                xMaxF = new java.util.ArrayList<>();
-        java.util.List<Integer> yMinF = new java.util.ArrayList<>(),
-                yMaxF = new java.util.ArrayList<>();
+        java.util.List<Integer> port1F = new java.util.ArrayList<>(), port2F = new java.util.ArrayList<>();
+        java.util.List<Integer> xMinF = new java.util.ArrayList<>(), xMaxF = new java.util.ArrayList<>();
+        java.util.List<Integer> yMinF = new java.util.ArrayList<>(), yMaxF = new java.util.ArrayList<>();
         for (int f = 1; f <= nFace; f++) {
             double[] c = faceC[f];
             if (c == null) continue;
@@ -108,14 +104,9 @@ public class EmwSlabSweepFrequency {
             else if (Math.abs(Math.abs(c[0]) - hp) < 1e-3) (c[0] < 0 ? xMinF : xMaxF).add(f);
             else if (Math.abs(Math.abs(c[1]) - hp) < 1e-3) (c[1] < 0 ? yMinF : yMaxF).add(f);
         }
-        System.out.println(
-                "PORT1=" + port1F + " PORT2=" + port2F + " XMIN=" + xMinF + " XMAX=" + xMaxF
-                        + " YMIN=" + yMinF + " YMAX=" + yMaxF);
-        if (port1F.size() != 1
-                || port2F.size() != 1
-                || xMinF.size() != 3
-                || xMaxF.size() != 3
-                || yMinF.size() != 3
+        System.out.println("PORT1=" + port1F + " PORT2=" + port2F + " XMIN=" + xMinF + " XMAX=" + xMaxF
+                + " YMIN=" + yMinF + " YMAX=" + yMaxF);
+        if (port1F.size() != 1 || port2F.size() != 1 || xMinF.size() != 3 || xMaxF.size() != 3 || yMinF.size() != 3
                 || yMaxF.size() != 3) {
             throw new IllegalStateException("face classification failed");
         }
@@ -141,10 +132,7 @@ public class EmwSlabSweepFrequency {
 
         // ---- 物理场: emw ----
         model.component(comp).physics().create("emw", "ElectromagneticWaves", "geom1");
-        model.component(comp)
-                .physics("emw")
-                .feature("wee1")
-                .set("DisplacementFieldModel", "RefractiveIndex");
+        model.component(comp).physics("emw").feature("wee1").set("DisplacementFieldModel", "RefractiveIndex");
         setPeriodicPort(model, comp, "port1", 1, port1F.get(0), true);
         setPeriodicPort(model, comp, "port2", 2, port2F.get(0), false);
         setFloquetPeriodic(model, comp, "pc1", xAllArr);
@@ -204,38 +192,27 @@ public class EmwSlabSweepFrequency {
         System.out.println("EmwSlabSweepFrequency_OK");
     }
 
-    private static void setIndexMaterial(
-            Model model, String comp, String tag, String name, int[] doms, String n) {
+    private static void setIndexMaterial(Model model, String comp, String tag, String name, int[] doms, String n) {
         model.component(comp).material().create(tag, "Common");
         model.component(comp).material(tag).label(name);
         model.component(comp).material(tag).selection().set(doms);
         com.comsol.model.Material mat = model.component(comp).material(tag);
         mat.materialModel().create("RefractiveIndex", "RefractiveIndex");
-        mat.propertyGroup("RefractiveIndex")
-                .set("n", new String[] {n, "0", "0", "0", n, "0", "0", "0", n});
+        mat.propertyGroup("RefractiveIndex").set("n", new String[] {n, "0", "0", "0", n, "0", "0", "0", n});
     }
 
-    private static void setPeriodicPort(
-            Model model, String comp, String tag, int name, int face, boolean excite) {
+    private static void setPeriodicPort(Model model, String comp, String tag, int name, int face, boolean excite) {
         model.component(comp).physics("emw").create(tag, "Port", 2);
         model.component(comp).physics("emw").feature(tag).selection().set(new int[] {face});
         model.component(comp).physics("emw").feature(tag).set("PortName", String.valueOf(name));
-        model.component(comp)
-                .physics("emw")
-                .feature(tag)
-                .set("PortExcitation", excite ? "on" : "off");
+        model.component(comp).physics("emw").feature(tag).set("PortExcitation", excite ? "on" : "off");
         model.component(comp).physics("emw").feature(tag).set("PortType", "Periodic");
         model.component(comp).physics("emw").feature(tag).set("SlitType", "PECBacked");
         model.component(comp).physics("emw").feature(tag).set("PortOrientation", "ForwardPort");
         model.component(comp).physics("emw").feature(tag).set("InputType", "E");
-        model.component(comp)
-                .physics("emw")
-                .feature(tag)
-                .set("Eampl", new String[][] {{"0"}, {"1"}, {"0"}});
-        model.component(comp)
-                .physics("emw")
-                .feature(tag)
-                .set("n", new String[] {"n_air", "0", "0", "0", "n_air", "0", "0", "0", "n_air"});
+        model.component(comp).physics("emw").feature(tag).set("Eampl", new String[][] {{"0"}, {"1"}, {"0"}});
+        model.component(comp).physics("emw").feature(tag).set(
+                "n", new String[] {"n_air", "0", "0", "0", "n_air", "0", "0", "0", "n_air"});
         model.component(comp).physics("emw").feature(tag).set("alpha1_inc", "alpha");
         model.component(comp).physics("emw").feature(tag).set("Pin", "1[W]");
     }

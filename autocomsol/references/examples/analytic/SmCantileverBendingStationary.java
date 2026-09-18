@@ -1,7 +1,6 @@
 import com.comsol.model.GeomInfo;
 import com.comsol.model.Model;
 import com.comsol.model.util.ModelUtil;
-import java.lang.reflect.Method;
 
 /**
  * SmCantileverBendingStationary — 2D 悬臂梁纯弯曲 + 二次 Lagrange (p=2)
@@ -25,14 +24,13 @@ import java.lang.reflect.Method;
  * @author autocomsol skill — 案例演示高阶物理场离散
  */
 public class SmCantileverBendingStationary {
-
     public static void main(String[] args) throws Exception {
         Model model = ModelUtil.create("Model");
         String comp = "comp1";
 
         double L = 10.0, h = 2.0, M = 1.0, E = 1.0, nu = 0.0;
         double I = h * h * h / 12.0;
-        int order = 2;  // 二次 Lagrange (固定)
+        int order = 2; // 二次 Lagrange (固定)
 
         model.param().set("L_b", L + "[m]", "梁长");
         model.param().set("h_b", h + "[m]", "梁高");
@@ -56,10 +54,8 @@ public class SmCantileverBendingStationary {
         model.component(comp).physics("sm").feature("lemm1").set("nu_mat", "userdef");
         model.component(comp).physics("sm").feature("lemm1").set("nu", "nu_b");
 
-        // 高阶离散阶次: 探针实证 order_displacement = "1,2,3,4,2s,3s" 全部支持
-        Object sp = model.component(comp).physics("sm").prop("ShapeProperty");
-        Method setM = sp.getClass().getMethod("set", String.class, String.class);
-        setM.invoke(sp, "order_displacement", Integer.toString(order));
+        // 高阶离散阶次: 探针实证 order_displacement = "1,2,2s,3,3s,4,4s,5" 全部支持
+        model.component(comp).physics("sm").prop("ShapeProperty").set("order_displacement", Integer.toString(order));
 
         // 边界: x=-L/2 Fixed, x=+L/2 法向 σ_xx(y) = M·y/I 分布载荷
         GeomInfo gi = model.component(comp).geom("geom1");
@@ -94,8 +90,8 @@ public class SmCantileverBendingStationary {
         model.result().export().create("d1", "Data");
         model.result().export("d1").set("data", "dset1");
         model.result().export("d1").set("filename", csvOut);
-        model.result().export("d1").set("expr", new String[] {"u", "v", "solid.mises",
-                "solid.SX", "solid.SY", "solid.SXY"});
+        model.result().export("d1").set(
+                "expr", new String[] {"u", "v", "solid.mises", "solid.SX", "solid.SY", "solid.SXY"});
         model.result().export("d1").run();
 
         String mphOut = args.length > 0 ? args[0] : "SmCantileverBendingStationary.mph";
@@ -108,7 +104,7 @@ public class SmCantileverBendingStationary {
         int[] tmp = new int[n];
         int c = 0;
         for (int e = 1; e <= n; e++) {
-            double[][] mid = gi.edgeX(e, new double[]{0.5});
+            double[][] mid = gi.edgeX(e, new double[] {0.5});
             if (mid != null && mid.length > 0 && Math.abs(mid[0][0] - xTarget) < 1e-9) {
                 tmp[c++] = e;
             }

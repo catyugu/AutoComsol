@@ -23,7 +23,6 @@ import com.comsol.model.util.ModelUtil;
  * -outputfile ... <savepath.mph> <csv-out> 参数: args[0]=mph 保存路径, args[1]=CSV 导出路径
  */
 public class TCylinderStationary {
-
     public static void main(String[] args) throws Exception {
         Model model = ModelUtil.create("Model");
 
@@ -44,10 +43,7 @@ public class TCylinderStationary {
         model.component(comp).geom("geom1").create("cyl_out", "Cylinder");
         model.component(comp).geom("geom1").feature("cyl_out").set("r", "r_out");
         model.component(comp).geom("geom1").feature("cyl_out").set("h", "H");
-        model.component(comp)
-                .geom("geom1")
-                .feature("cyl_out")
-                .set("pos", new double[] {0, 0, -0.1});
+        model.component(comp).geom("geom1").feature("cyl_out").set("pos", new double[] {0, 0, -0.1});
 
         model.component(comp).geom("geom1").create("cyl_in", "Cylinder");
         model.component(comp).geom("geom1").feature("cyl_in").set("r", "r_in");
@@ -55,24 +51,13 @@ public class TCylinderStationary {
         model.component(comp).geom("geom1").feature("cyl_in").set("pos", new double[] {0, 0, -0.1});
 
         model.component(comp).geom("geom1").create("diff1", "Difference");
-        model.component(comp)
-                .geom("geom1")
-                .feature("diff1")
-                .selection("input")
-                .set(new String[] {"cyl_out"});
-        model.component(comp)
-                .geom("geom1")
-                .feature("diff1")
-                .selection("input2")
-                .set(new String[] {"cyl_in"});
+        model.component(comp).geom("geom1").feature("diff1").selection("input").set(new String[] {"cyl_out"});
+        model.component(comp).geom("geom1").feature("diff1").selection("input2").set(new String[] {"cyl_in"});
         model.component(comp).geom("geom1").run();
 
         // 材料: 热导率（Common 材料 def 属性组）
         model.component(comp).material().create("mat1", "Common");
-        model.component(comp)
-                .material("mat1")
-                .propertyGroup("def")
-                .set("thermalconductivity", new String[][] {{"k"}});
+        model.component(comp).material("mat1").propertyGroup("def").set("thermalconductivity", new String[][] {{"k"}});
 
         // 物理场: HeatTransfer（本机纯固体传热接口）
         model.component(comp).physics().create("ht", "HeatTransfer", "geom1");

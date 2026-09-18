@@ -32,7 +32,6 @@ import com.comsol.model.util.ModelUtil;
  * 参数: args[0]=mph 保存路径, args[1]=CSV 导出路径, args[2]=.mphtxt 导出路径
  */
 public class EcHollowCylinderStationary {
-
     public static void main(String[] args) throws Exception {
         Model model = ModelUtil.create("Model");
 
@@ -70,16 +69,15 @@ public class EcHollowCylinderStationary {
         int[] outerFaces = facesAtRadius(gi, 0.03);
         requireFaces("inner(r=r_in)", innerFaces);
         requireFaces("outer(r=r_out)", outerFaces);
-        System.out.println("INNER=" + java.util.Arrays.toString(innerFaces)
-                + " OUTER=" + java.util.Arrays.toString(outerFaces));
+        System.out.println(
+                "INNER=" + java.util.Arrays.toString(innerFaces) + " OUTER=" + java.util.Arrays.toString(outerFaces));
 
         // 材料
         model.component(comp).material().create("mat1", "Common");
         model.component(comp).material("mat1").selection().set(new int[] {1});
-        model.component(comp).material("mat1").propertyGroup("def")
-                .set("electricconductivity", new String[][] {{"sigma"}});
-        model.component(comp).material("mat1").propertyGroup("def")
-                .set("relpermittivity", new String[][] {{"1"}});
+        model.component(comp).material("mat1").propertyGroup("def").set(
+                "electricconductivity", new String[][] {{"sigma"}});
+        model.component(comp).material("mat1").propertyGroup("def").set("relpermittivity", new String[][] {{"1"}});
 
         // 物理场: 电流
         model.component(comp).physics().create("ec", "ConductiveMedia", "geom1");
@@ -92,8 +90,7 @@ public class EcHollowCylinderStationary {
 
         // 网格: 自由四面体 + 尺寸
         model.component(comp).mesh().create("mesh1");
-        com.comsol.model.MeshFeature ftet1 = model.component(comp).mesh("mesh1")
-                .create("ftet1", "FreeTet");
+        com.comsol.model.MeshFeature ftet1 = model.component(comp).mesh("mesh1").create("ftet1", "FreeTet");
         com.comsol.model.MeshFeature size1 = ftet1.create("size1", "Size");
         size1.set("custom", "on");
         size1.set("hmax", "hmax");

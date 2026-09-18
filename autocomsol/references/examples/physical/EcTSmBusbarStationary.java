@@ -32,7 +32,6 @@ import com.comsol.model.util.ModelUtil;
  * EcTSmBusbarStationary <run-dir> args[0]=mph, args[1]=CSV
  */
 public class EcTSmBusbarStationary {
-
     public static void main(String[] args) throws Exception {
         Model model = ModelUtil.create("Model");
 
@@ -175,27 +174,12 @@ public class EcTSmBusbarStationary {
         }
         int[] boltsArr = new int[boltDoms.size()];
         for (int i = 0; i < boltDoms.size(); i++) boltsArr[i] = boltDoms.get(i);
-        System.out.println(
-                "BUS_DOM=" + busDom + " BOLT_DOMS=" + java.util.Arrays.toString(boltsArr));
+        System.out.println("BUS_DOM=" + busDom + " BOLT_DOMS=" + java.util.Arrays.toString(boltsArr));
         for (int d = 1; d <= nDom; d++) {
-            System.out.println(
-                    "DOM "
-                            + d
-                            + " vol="
-                            + String.format("%.3e", domVol[d])
-                            + " bbox=("
-                            + String.format("%.3f", bmin[d][0])
-                            + ".."
-                            + String.format("%.3f", bmax[d][0])
-                            + ", "
-                            + String.format("%.3f", bmin[d][1])
-                            + ".."
-                            + String.format("%.3f", bmax[d][1])
-                            + ", "
-                            + String.format("%.3f", bmin[d][2])
-                            + ".."
-                            + String.format("%.3f", bmax[d][2])
-                            + ")");
+            System.out.println("DOM " + d + " vol=" + String.format("%.3e", domVol[d]) + " bbox=("
+                    + String.format("%.3f", bmin[d][0]) + ".." + String.format("%.3f", bmax[d][0]) + ", "
+                    + String.format("%.3f", bmin[d][1]) + ".." + String.format("%.3f", bmax[d][1]) + ", "
+                    + String.format("%.3f", bmin[d][2]) + ".." + String.format("%.3f", bmax[d][2]) + ")");
         }
 
         // 外部面 = 邻接恰 1 域; 记录每个外部面的所属域和中心
@@ -205,7 +189,8 @@ public class EcTSmBusbarStationary {
         for (int f = 1; f <= nFace; f++) {
             int[] ad = adj[f - 1];
             int cnt = 0;
-            for (int a : ad) if (a > 0) cnt++;
+            for (int a : ad)
+                if (a > 0) cnt++;
             if (cnt == 1) {
                 extFaces.add(f);
                 faceDom[f] = ad[0] > 0 ? ad[0] : ad[ad.length - 1];
@@ -213,15 +198,7 @@ public class EcTSmBusbarStationary {
             double[] pr = gi.faceParamRange(f);
             double[][] pts;
             try {
-                pts =
-                        gi.faceX(
-                                f,
-                                new double[][] {
-                                    {
-                                        (pr[0] + pr[1]) / 2,
-                                        pr.length >= 4 ? (pr[2] + pr[3]) / 2 : 0.5
-                                    }
-                                });
+                pts = gi.faceX(f, new double[][] {{(pr[0] + pr[1]) / 2, pr.length >= 4 ? (pr[2] + pr[3]) / 2 : 0.5}});
             } catch (Exception e) {
                 try {
                     pts = gi.faceX(f, new double[][] {{0.5, 0.5}});
@@ -238,30 +215,25 @@ public class EcTSmBusbarStationary {
         // cyl2 (沿-z): pos=(0.045,-0.0375,-0.01) h=0.015 → 外端面 z=-0.010
         // cyl3 (沿-z): pos=(0.045,-0.0125,-0.01) h=0.015 → 外端面 z=-0.010
         double[][] boltEndCenters = {
-            {xVert0 + 3 * 0.005, yc, zVert}, // cyl1 外端 (x=0.110)
-            {xHorz, yc - yHalf, -0.010}, // cyl2 外端 (z=-0.010)
-            {xHorz, yc + yHalf, -0.010}, // cyl3 外端 (z=-0.010)
+                {xVert0 + 3 * 0.005, yc, zVert}, // cyl1 外端 (x=0.110)
+                {xHorz, yc - yHalf, -0.010}, // cyl2 外端 (z=-0.010)
+                {xHorz, yc + yHalf, -0.010}, // cyl3 外端 (z=-0.010)
         };
         java.util.List<Integer> boltEndFaces = new java.util.ArrayList<>();
         for (int f : extFaces) {
             double[] c = faceC[f];
             if (c == null) continue;
             for (double[] ec : boltEndCenters) {
-                double d =
-                        Math.sqrt(
-                                (c[0] - ec[0]) * (c[0] - ec[0])
-                                        + (c[1] - ec[1]) * (c[1] - ec[1])
-                                        + (c[2] - ec[2]) * (c[2] - ec[2]));
+                double d = Math.sqrt((c[0] - ec[0]) * (c[0] - ec[0]) + (c[1] - ec[1]) * (c[1] - ec[1])
+                        + (c[2] - ec[2]) * (c[2] - ec[2]));
                 if (d < 1e-3) {
                     boltEndFaces.add(f);
                     break;
                 }
             }
         }
-        System.out.println(
-                "BOLT_END_FACES="
-                        + java.util.Arrays.toString(boltEndFaces.toArray())
-                        + " (expect 3: cyl1 outer + cyl2/cyl3 outer)");
+        System.out.println("BOLT_END_FACES=" + java.util.Arrays.toString(boltEndFaces.toArray())
+                + " (expect 3: cyl1 outer + cyl2/cyl3 outer)");
         if (boltEndFaces.size() != 3) {
             throw new IllegalStateException("bolt end face count != 3, got " + boltEndFaces.size());
         }
@@ -279,22 +251,14 @@ public class EcTSmBusbarStationary {
         }
         if (highFace < 0 || groundMin.size() != 2) {
             throw new IllegalStateException(
-                    "high/ground face identification failed: high="
-                            + highFace
-                            + " ground="
-                            + groundMin.size());
+                    "high/ground face identification failed: high=" + highFace + " ground=" + groundMin.size());
         }
         int[] contact = new int[3];
         contact[0] = highFace;
         contact[1] = groundMin.get(0);
         contact[2] = groundMin.get(1);
-        System.out.println(
-                "HIGH_FACE="
-                        + highFace
-                        + " GROUND="
-                        + java.util.Arrays.toString(groundMin.toArray())
-                        + " BND_BOLT_CONTACT="
-                        + java.util.Arrays.toString(contact));
+        System.out.println("HIGH_FACE=" + highFace + " GROUND=" + java.util.Arrays.toString(groundMin.toArray())
+                + " BND_BOLT_CONTACT=" + java.util.Arrays.toString(contact));
 
         // 外部面对流: 全部外部面 - bolt contact
         java.util.Set<Integer> contactSet = new java.util.HashSet<>();
@@ -307,8 +271,7 @@ public class EcTSmBusbarStationary {
         for (int i = 0; i < convFaces.size(); i++) convArr[i] = convFaces.get(i);
 
         // ---- 材料 ----
-        setMaterial(
-                model,
+        setMaterial(model,
                 comp,
                 "mat_Cu",
                 "Copper",
@@ -320,8 +283,7 @@ public class EcTSmBusbarStationary {
                 "alpha_Cu",
                 "E_Cu",
                 "nu_Cu");
-        setMaterial(
-                model,
+        setMaterial(model,
                 comp,
                 "mat_Ti",
                 "Titanium beta-21S",
@@ -333,11 +295,7 @@ public class EcTSmBusbarStationary {
                 "alpha_Ti",
                 "E_Ti",
                 "nu_Ti");
-        System.out.println(
-                "MATERIALS set: Cu->dom"
-                        + busDom
-                        + ", Ti->dom"
-                        + java.util.Arrays.toString(boltsArr));
+        System.out.println("MATERIALS set: Cu->dom" + busDom + ", Ti->dom" + java.util.Arrays.toString(boltsArr));
 
         // ---- 物理场 ----
         model.component(comp).physics().create("ec", "ConductiveMedia", "geom1");
@@ -353,13 +311,8 @@ public class EcTSmBusbarStationary {
         model.component(comp).physics("ec").feature("term1").set("V0", "Vtot");
         model.component(comp).physics("ec").create("gnd1", "Ground", 2);
         model.component(comp).physics("ec").feature("gnd1").selection().set(groundArr);
-        System.out.println(
-                "EC boundary: V("
-                        + highFace
-                        + ")="
-                        + "Vtot, Gnd("
-                        + java.util.Arrays.toString(groundArr)
-                        + ")");
+        System.out.println("EC boundary: V(" + highFace + ")="
+                + "Vtot, Gnd(" + java.util.Arrays.toString(groundArr) + ")");
 
         // 热边界: 全部外表面对流 (bnd_conv), 螺栓端面绝热
         addConvective(comp, model, "hf1", convArr);
@@ -385,9 +338,7 @@ public class EcTSmBusbarStationary {
         model.component(comp).multiphysics("te1").set("Heat_physics", "ht");
         model.component(comp).multiphysics("te1").set("Solid_physics", "solid");
         model.component(comp).multiphysics("te1").set("alpha_mat", "from_mat");
-        model.component(comp)
-                .multiphysics("te1")
-                .set("minput_strainreferencetemperature_src", "userdef");
+        model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature_src", "userdef");
         model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature", "T0");
         System.out.println("TE1 created");
 
@@ -395,8 +346,7 @@ public class EcTSmBusbarStationary {
         model.component(comp).mesh().create("mesh1");
         // Free Tetrahedral + 自定义 Size (任务书参数化序列: 最大 mh, 最小 mh-mh/3,
         // 曲率 0.2)
-        com.comsol.model.MeshFeature ftet1 =
-                model.component(comp).mesh("mesh1").create("ftet1", "FreeTet");
+        com.comsol.model.MeshFeature ftet1 = model.component(comp).mesh("mesh1").create("ftet1", "FreeTet");
         com.comsol.model.MeshFeature size1 = ftet1.create("size1", "Size");
         size1.set("custom", "on");
         size1.set("hmax", "mh");
@@ -429,21 +379,16 @@ public class EcTSmBusbarStationary {
         model.result().export().create("data1", "Data");
         model.result().export("data1").set("data", "dset1");
         model.result().export("data1").set("filename", csvOut);
-        model.result()
-                .export("data1")
-                .set(
-                        "expr",
-                        new String[] {
-                            "V",
-                            "T",
-                            "ec.normJ",
-                            "ec.Qrh",
-                            "solid.disp",
-                            "solid.mises",
-                            "solid.sx",
-                            "solid.sy",
-                            "solid.sz"
-                        });
+        model.result().export("data1").set("expr",
+                new String[] {"V",
+                        "T",
+                        "ec.normJ",
+                        "ec.Qrh",
+                        "solid.disp",
+                        "solid.mises",
+                        "solid.sx",
+                        "solid.sy",
+                        "solid.sz"});
         model.result().export("data1").run();
 
         String outPath = args.length > 0 ? args[0] : "EcTSmBusbarStationary.mph";
@@ -452,8 +397,7 @@ public class EcTSmBusbarStationary {
     }
 
     /** 写材料 (电/热/密度/比热/热膨胀/结构参数)。E,ν 通过 Enu 材料模型写入, 供 lemm1 from_mat */
-    private static void setMaterial(
-            Model model,
+    private static void setMaterial(Model model,
             String comp,
             String tag,
             String name,
@@ -474,10 +418,8 @@ public class EcTSmBusbarStationary {
         mat.propertyGroup("def").set("thermalconductivity", new String[][] {{k}});
         mat.propertyGroup("def").set("density", new String[][] {{rho}});
         mat.propertyGroup("def").set("heatcapacity", new String[][] {{cp}});
-        mat.propertyGroup("def")
-                .set(
-                        "thermalexpansioncoefficient",
-                        new String[] {alpha, "0", "0", "0", alpha, "0", "0", "0", alpha});
+        mat.propertyGroup("def").set(
+                "thermalexpansioncoefficient", new String[] {alpha, "0", "0", "0", alpha, "0", "0", "0", alpha});
         // 结构参数: Enu 材料模型 (MaterialEnuProbe 实证), 供 solid.lemm1 from_mat
         mat.materialModel().create("Enu", "YoungsModulusAndPoissonsRatio");
         mat.propertyGroup("Enu").set("E", new String[][] {{E}});
@@ -490,10 +432,7 @@ public class EcTSmBusbarStationary {
         model.component(comp).physics("ht").feature(tag).set("HeatFluxType", "ConvectiveHeatFlux");
         model.component(comp).physics("ht").feature(tag).set("minput_temperature_src", "userdef");
         model.component(comp).physics("ht").feature(tag).set("minput_temperature", "T0");
-        model.component(comp)
-                .physics("ht")
-                .feature(tag)
-                .set("HeatTransferCoefficientType", "UserDef");
+        model.component(comp).physics("ht").feature(tag).set("HeatTransferCoefficientType", "UserDef");
         model.component(comp).physics("ht").feature(tag).set("h", "htc");
     }
 
