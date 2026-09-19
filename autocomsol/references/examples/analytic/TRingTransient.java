@@ -16,8 +16,8 @@ import com.comsol.model.util.ModelUtil;
  * scripts/verifications/analytic/t_ring_transient.py。
  *
  * <p>本机证据（COMSOL 6.2 官方示例 heating_circuit.mph 解包）: - 对流边界特征: HeatFluxBoundary, 参数
- * HeatFluxType='ConvectiveHeatFlux', minput_temperature_src='userdef', minput_temperature,
- * HeatTransferCoefficientType='UserDef', h - 瞬态研究: study("std1").create("time", "TimeDependent");
+ * HeatFluxType='ConvectiveHeatFlux', Text (环境温度; Text_src 仅允许 'userdef'),
+ * h (HeatTransferCoefficientType 默认 UserDef) - 瞬态研究: study("std1").create("time", "TimeDependent");
  * study("std1").feature("time").set("tlist", "range(...)") - 初值: ht.init 或
  * physics("ht").feature("init1").set("T", ...)
  *
@@ -83,16 +83,13 @@ public class TRingTransient {
         // 内环: TemperatureBoundary T=T1（Dirichlet）
         model.component(comp).physics("ht").create("temp_in", "TemperatureBoundary", 1);
         model.component(comp).physics("ht").feature("temp_in").selection().set(inner);
-        model.component(comp).physics("ht").feature("temp_in").set("T0_src", "userdef");
         model.component(comp).physics("ht").feature("temp_in").set("T0", "T1");
 
         // 外环: HeatFluxBoundary 对流换热（Robin）→ 含对流换热 BC
         model.component(comp).physics("ht").create("hf_out", "HeatFluxBoundary", 1);
         model.component(comp).physics("ht").feature("hf_out").selection().set(outer);
         model.component(comp).physics("ht").feature("hf_out").set("HeatFluxType", "ConvectiveHeatFlux");
-        model.component(comp).physics("ht").feature("hf_out").set("minput_temperature_src", "userdef");
-        model.component(comp).physics("ht").feature("hf_out").set("minput_temperature", "Tinf");
-        model.component(comp).physics("ht").feature("hf_out").set("HeatTransferCoefficientType", "UserDef");
+        model.component(comp).physics("ht").feature("hf_out").set("Text", "Tinf");
         model.component(comp).physics("ht").feature("hf_out").set("h", "h_conv");
 
         // 网格: 自由三角形，中等偏细（瞬态精度敏感）

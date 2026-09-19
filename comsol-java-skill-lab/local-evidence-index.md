@@ -232,3 +232,86 @@
     - np=14 对 `EcTSmCube` 反而比 np=8 慢 (204.9 vs 175.7), 故默认核数上限取 8。
 - **数值不受影响**: np=8 与 np=14 的 4 案例回归健康检查全 PASS (解析解容差内), 与 np=1 同结论。
 - **案例之间仍串行**: 一个案例一个 batch 子进程, 避免多个案例同时抢内存 (最大案例峰值约 4 GB)。
+
+## 22. 对流边界环境温度属性 `Text` vs `minput_temperature` (2026-09-19, ConvAmbientProbe 临时探针)
+
+- **命题**: "Convective ambient temperature 是 `Text` 而非 `minput_temperature`; `minput_temperature`
+  是 `HeatFluxBoundary` 上的死属性"。
+- **判定: 成立 (有保留)**: `minput_temperature` 是**合法但惰性**的属性 —— `hasProperty=true`、
+  `properties()` 列出、`set()` 接受、读回正常, 但**不进方程**; 对流边界实际环境温度由 `Text` 驱动。
+- **探针设计 (行为层, 唯一判据)**: 2D 方板 1D 沿 x 导热, k=10 W/(m*K), L=0.1 m, x=0 定温 373.15 K,
+  x=L 对流 h=100 W/(m^2*K) (`hL/k=1`) → 端面温度 = (373.15 + T_amb)/2。候选环境温度
+  273.15 / 293.15 / 373.15 K, 相互差 10~100 K, 远大于网格误差。每配置导出场 CSV 离线比对解析值。
+- **实测 (端面温度, 与解析值四位小数一致)**:
+
+  | 配置 | 写入 | 端面温度 (K) | 反推 T_amb | 结论 |
+  | --- | --- | --- | --- | --- |
+  | A | 只设 h | 333.15 | 293.15 | 默认环境温度 = 293.15 K |
+  | B | `minput_temperature_src='userdef'` + `minput_temperature=273.15` | 333.15 | 293.15 | `minput_temperature` 无效 |
+  | C | 只设 `minput_temperature=273.15` (不设 src) | 333.15 | 293.15 | 同上 |
+  | D | 只设 `Text=273.15` | 323.15 | 273.15 | `Text` 生效 |
+  | E | `Text=273.15` + `minput_temperature=373.15` | 323.15 | 273.15 | `Text` 胜 |
+  | F | `Text=373.15` + `minput_temperature=273.15` | 373.15 | 373.15 | `Text` 胜 |
+
+- **契约层证据 (同探针)**: `properties()` 同时含 `Text_src/Text` 与
+  `minput_temperature_src/minput_temperature`; 默认 `Text = minput_temperature = 293.15[K]`;
+  `getAllowedPropertyValues("Text_src") = [userdef]`;
+  `getAllowedPropertyValues("minput_temperature_src") = [root.comp1.T, userdef, fromCommonDef]`;
+  `getAllowedPropertyValues("HeatFluxType") = [GeneralInwardHeatFlux, ConvectiveHeatFlux, NucleateBoilingHeatFlux, HeatRate]`
+  → **契约层无法区分死活**, 必须做行为层探针 (`set` 全部返回 OK, 无任何报错)。
+- **官方模型挖掘 (1839 个 .mph, 同批证据)**: `HeatFluxBoundary`+`ConvectiveHeatFlux` 的特征同时携带两个键,
+  `minput_temperature` 几乎恒为未改动的默认 `293.15[K]` (`src=userdef`), 而 `Text` 承载物理环境温度表达式
+  (`T_amb`/`T_air`/`Ti`/`T0`/`Te`/`T_gas`/`0[degC]`/`80[degC]`/`300[K]`/`aveop2(T)` 等) —— 与行为层结论一致。
+- **影响面 (已修)**: 库内 6 个案例 (TFinArray / TRingTransient / EcTSmCube / EcTCylinder /
+  TRevolve / EcTSmBusbar) 原用 `minput_temperature` 设环境温度, 实际环境温度一直是默认 293.15 K
+  (与设定 293.0 仅差 0.15 K, 落在容差内故未被既有检查发现)。已全部改为 `set("Text", ...)`,
+  `src` 与 `autocomsol/references/examples/` 同步更新。
+- **方法学沉淀**: `autocomsol/references/api-validation-probes.md` §3b (属性死活判定: 契约层 + 行为层),
+  结论写入 `autocomsol/references/physics-api-recipes.md` (recipe 行 + "Silently inert properties" 陷阱)。
+- 探针类 `ConvAmbientProbe` 跑完即删 (不入库), 产物在 `runs/ConvAmbientProbe/` (本机)。
+
+## 23. 属性默认值判定 (2026-09-19, PropDefaultProbe 临时探针)
+
+- **命题**: 写等于默认值的 `set(...)` 是噪声 (用户指出的 `HeatTransferCoefficientType="UserDef"` 一类)。
+- **方法**: 新建 feature 后不设任何属性, 直接 `getString(key)` = 该键默认值; 与案例写入值比对即可判定冗余。
+  同时 `properties()` / `getAllowedPropertyValues(key)` 给出该 feature 的合法键与合法取值。
+- **实测默认值 (COMSOL 6.2, HeatTransfer/几何/emw 相关)**:
+
+  | feature | 键 | 默认值 | 案例是否需显式写 |
+  | --- | --- | --- | --- |
+  | HeatFluxBoundary | HeatFluxType | GeneralInwardHeatFlux | 需要 (改 ConvectiveHeatFlux) |
+  | HeatFluxBoundary | HeatTransferCoefficientType | **UserDef** | 不需要 |
+  | HeatFluxBoundary | h | 0 | 需要 |
+  | HeatFluxBoundary | Text / Text_src | 293.15[K] / userdef | Text 需要, src 不需要 |
+  | HeatFluxBoundary | minput_temperature(_src) | 293.15[K] / userdef | 不生效 (见 §22) |
+  | TemperatureBoundary | T0_src | **userdef** | 不需要 |
+  | TemperatureBoundary | T0 | 293.15[K] | 需要 |
+  | ThermalExpansion (te1) | alpha_mat | **from_mat** | 不需要 |
+  | ThermalExpansion (te1) | minput_strainreferencetemperature_src | fromCommonDef | 需要 (改 userdef) |
+  | Union | intbnd | **on** | 不需要 |
+  | emw Port | SlitType / PortOrientation / InputType | **PECBacked / ForwardPort / E** | 不需要 (PortType=Periodic 后重读仍为默认) |
+  | emw Port | PortType | UserDefined | 需要 (改 Periodic) |
+  | Terminal (ec) | TerminalType | 电荷型 (非 Voltage) | 需要 |
+
+- **行为层对照**: 只写必要语句的最小模型 (2D 方板 1D 导热, 对流边只设 `HeatFluxType`/`Text`/`h`,
+  定温边只设 `T0`) 解出 T(x=0)=373.1500 K, T(x=L)=323.1500 K, 与解析解四位小数一致 —— 删除冗余 `set` 无影响。
+- **落地**: 库内 9 个案例删除 25 条等于默认值的 `set` (src 与 `autocomsol/references/examples/` 同步);
+  默认值事实写入 `autocomsol/references/physics-api-recipes.md` ("Writing a value that is already the default"),
+  方法写入 `api-validation-probes.md` §3c。
+- **连带修正**: 删除冗余语句后全回归暴露 ET2 (EcTCylinderStationary) 的 `T_core_profile` 判据余量不足
+  (见 §24)。
+
+## 24. ET2 解析解前提的可测性修正: 端面散热对中平面的影响 (2026-09-19)
+
+- **背景**: §22 把对流环境温度改为真正生效的 `Text` 后, ET2 的 `T_core_profile` 由 2.929 K (PASS) 变为
+  3.079 K (FAIL, 判据 < 3 K)。原因不是新错误: 该案例原先把 `Text` 留在默认 293.15 K, 与解析解用的
+  T∞=293.0 K 差 0.15 K, 恰好把端面散热造成的 ~3.08 K 冷偏差抵消掉 0.15 K —— **原 PASS 是两处误差相消的结果**。
+- **机理 (实测)**: 线性 Robin 问题里环境温度平移 ΔT∞ 使全场平移同一 ΔT∞, 所以两处误差可直接相减。
+  ET2 的解析解是"中平面 1D 径向"解, 要求端面轴向散热对中平面可忽略; L=1 (r2=0.3) 时该前提不成立 ——
+  FE 中平面比解析解低 2.9~3.1 K (r→0 最大), 且随 |z| 增大迅速恶化 (|z|∈[0.4,0.5] 处达 -24.7 K)。
+- **修正**: 加长圆柱 L=1 → 2, V0 同步 0.3 → 0.6 V (E=V0/L 与 Q1 不变), 使中平面真正落在端面影响之外。
+  同一位置偏差由 2.9~3.1 K 降到 0.24~0.27 K, 各检查余量均 ≥10x:
+  T_core_profile 0.270 / T_shell_profile 0.185 / interface 0.207 / convection_wall 0.101 / z_symmetry 0.129 K。
+  单次求解 40.8 s (np=8)。
+- **结论**: 解析解的前提 (端面影响可忽略) 是**可测量**的, 不能只写在注释里; 判据卡在阈值附近时,
+  先查前提是否成立, 而不是放宽阈值。

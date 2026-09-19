@@ -2,15 +2,16 @@
 """
 ec_t_cylinder_stationary.py — 实验 ET2: 3D 同轴双材料电热耦合稳态 验证
 
-案例: EcTCylinderStationary (src/analytic/.java)。
+案例: EcTCylinderStationary (src/analytic/EcTCylinderStationary.java)。
 物理: ConductiveMedia(ec) + HeatTransfer(ht) + ElectromagneticHeating 耦合。
-几何: 3D 同轴圆柱（内芯 r1=0.15 + 外壳 r1<r<r2=0.3, L=1, 中心原点, 2 个域）。
-电:   顶面 V0=0.3V, 底面 Ground; 电流只流经内芯(外壳 σ≈0 绝缘)。
-       内芯 V(z)=V0·(z+L/2)/L 线性, E=V0/L=0.3 V/m, J=σ1E, 焦耳热 Q1=σ1(V0/L)²。
+几何: 3D 同轴圆柱（内芯 r1=0.15 + 外壳 r1<r<r2=0.3, L=2, 中心原点, 2 个域）。
+电:   顶面 V0=0.6V, 底面 Ground; 电流只流经内芯(外壳 σ≈0 绝缘)。
+      内芯 V(z)=V0·(z+L/2)/L 线性, E=V0/L=0.3 V/m, J=σ1E, 焦耳热 Q1=σ1(V0/L)²。
 热:   侧面 + 顶面 + 底面 全部对流 h=200 → T∞=293K（无绝热）。
       内芯 k1=15, 外壳 k2=30。
 
-解析解（中平面 z=0 严格对称面, ∂T/∂z=0 精确, 端面散热不影响中平面）:
+解析解（中平面 z=0 严格对称面, ∂T/∂z=0; 端面散热对中平面的影响要求 L 足够大:
+L=2 时实测中平面偏差 0.27 K, L=1 时为 3.1 K）:
   内芯 0≤r≤r1 (含源抛物线):  T_c(r)=T∞+Q1·r1²/(2r2h)+Q1·r1²/(2k2)·ln(r2/r1)
                                     +Q1·(r1²-r²)/(4k1)
   外壳 r1≤r≤r2 (无源对数):    T_o(r)=T∞+Q1·r1²/(2r2h)+Q1·r1²/(2k2)·ln(r2/r)
@@ -44,8 +45,8 @@ CASE_KEY = "ET2"
 # ---- 物理参数 (与 EcTCylinderStationary.java 一致) ----
 R1 = 0.15
 R2 = 0.30
-L = 1.0
-V0 = 0.3
+L = 2.0
+V0 = 0.6
 SIGMA1 = 1.0e6
 SIGMA2 = 1.0e-8
 K1 = 15.0
@@ -97,12 +98,12 @@ def main():
     vcol, tcol, jcol = 3, 4, 5
     has_J = len(rows[0]) >= 6
 
-    # ---- V_linear_core: 内芯 V=V0·(z+0.5)/L ----
+    # ---- V_linear_core: 内芯 V=V0·(z+L/2)/L ----
     vdevs = []
     for row in rows:
         r = r_of(row[0], row[1])
         if r < R1 - 0.02:
-            vdevs.append(abs(row[vcol] - V0 * (row[2] + 0.5) / L))
+            vdevs.append(abs(row[vcol] - V0 * (row[2] + L / 2) / L))
     if vdevs:
         vmax = max(vdevs)
         checks.append(
@@ -110,7 +111,7 @@ def main():
                 "V_linear_core",
                 vmax < 1e-3,
                 vmax,
-                "max|V-V0(z+0.5)/L| < 1e-3 V (core)",
+                "max|V-V0(z+L/2)/L| < 1e-3 V (core)",
                 "V",
             )
         )

@@ -101,17 +101,13 @@ public class EcTSmCubeTransient {
         model.component(comp).physics("ht").create("hf_xp", "HeatFluxBoundary", 2);
         model.component(comp).physics("ht").feature("hf_xp").selection().set(xp);
         model.component(comp).physics("ht").feature("hf_xp").set("HeatFluxType", "ConvectiveHeatFlux");
-        model.component(comp).physics("ht").feature("hf_xp").set("minput_temperature_src", "userdef");
-        model.component(comp).physics("ht").feature("hf_xp").set("minput_temperature", "Tinf");
-        model.component(comp).physics("ht").feature("hf_xp").set("HeatTransferCoefficientType", "UserDef");
+        model.component(comp).physics("ht").feature("hf_xp").set("Text", "Tinf");
         model.component(comp).physics("ht").feature("hf_xp").set("h", "h_conv");
 
         model.component(comp).physics("ht").create("hf_xm", "HeatFluxBoundary", 2);
         model.component(comp).physics("ht").feature("hf_xm").selection().set(xm);
         model.component(comp).physics("ht").feature("hf_xm").set("HeatFluxType", "ConvectiveHeatFlux");
-        model.component(comp).physics("ht").feature("hf_xm").set("minput_temperature_src", "userdef");
-        model.component(comp).physics("ht").feature("hf_xm").set("minput_temperature", "Tinf");
-        model.component(comp).physics("ht").feature("hf_xm").set("HeatTransferCoefficientType", "UserDef");
+        model.component(comp).physics("ht").feature("hf_xm").set("Text", "Tinf");
         model.component(comp).physics("ht").feature("hf_xm").set("h", "h_conv");
 
         // 多物理场: 焦耳热 → 热; 热膨胀 → 力
@@ -123,7 +119,6 @@ public class EcTSmCubeTransient {
         model.component(comp).multiphysics("te1").selection().set(new int[] {1});
         model.component(comp).multiphysics("te1").set("Heat_physics", "ht");
         model.component(comp).multiphysics("te1").set("Solid_physics", "solid");
-        model.component(comp).multiphysics("te1").set("alpha_mat", "from_mat");
         model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature_src", "userdef");
         model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature", "Tref");
 

@@ -16,7 +16,7 @@ import com.comsol.model.util.ModelUtil;
  *
  * <p>本机证据: - HeatTransferInSolids 报 Unknown physics interface（不可用） - HeatTransfer
  * 是本机纯固体传热接口（HeatProbe: tags solid1/init1/ins1/...） - 边界特征名
- * TemperatureBoundary（inline_induction_heater.mph 证据） - TemperatureBoundary 参数: T0_src=userdef,
+ * TemperatureBoundary（inline_induction_heater.mph 证据） - TemperatureBoundary 参数: T0 (T0_src 默认 userdef, 不必显式 set)
  * T0（本机 XML 证据） - 材料属性 thermalconductivity（finned_pipe.mph 证据）
  *
  * <p>模块需求: Heat Transfer 模块 运行: comsolcompile TCylinderStationary.java; comsolbatch -inputfile ...
@@ -74,13 +74,11 @@ public class TCylinderStationary {
         // 内壁 TemperatureBoundary T=T1
         model.component(comp).physics("ht").create("temp_in", "TemperatureBoundary", 2);
         model.component(comp).physics("ht").feature("temp_in").selection().set(inner);
-        model.component(comp).physics("ht").feature("temp_in").set("T0_src", "userdef");
         model.component(comp).physics("ht").feature("temp_in").set("T0", "T1");
 
         // 外壁 TemperatureBoundary T=T2
         model.component(comp).physics("ht").create("temp_out", "TemperatureBoundary", 2);
         model.component(comp).physics("ht").feature("temp_out").selection().set(outer);
-        model.component(comp).physics("ht").feature("temp_out").set("T0_src", "userdef");
         model.component(comp).physics("ht").feature("temp_out").set("T0", "T2");
 
         // 网格

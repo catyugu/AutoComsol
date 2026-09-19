@@ -41,7 +41,6 @@ public class TFinArrayStationary {
         // Union 合并基板+翅片为连通域 (Array 产生不相交块, 必须 Union 才能传热)
         model.component(comp).geom("geom1").create("uni1", "Union");
         model.component(comp).geom("geom1").feature("uni1").selection("input").set(new String[] {"base", "arr1"});
-        model.component(comp).geom("geom1").feature("uni1").set("intbnd", "on");
         model.component(comp).geom("geom1").run();
 
         // 材料 (全域)
@@ -61,7 +60,6 @@ public class TFinArrayStationary {
         System.out.println("ZTOP=" + java.util.Arrays.toString(zTop));
         model.component(comp).physics("ht").create("temp_bot", "TemperatureBoundary", 2);
         model.component(comp).physics("ht").feature("temp_bot").selection().set(z0);
-        model.component(comp).physics("ht").feature("temp_bot").set("T0_src", "userdef");
         model.component(comp).physics("ht").feature("temp_bot").set("T0", "T0");
 
         // 其余外表面: 对流换热 h → Tinf (排除 z=0 底面)
@@ -70,9 +68,7 @@ public class TFinArrayStationary {
         model.component(comp).physics("ht").create("hf_conv", "HeatFluxBoundary", 2);
         model.component(comp).physics("ht").feature("hf_conv").selection().set(conv);
         model.component(comp).physics("ht").feature("hf_conv").set("HeatFluxType", "ConvectiveHeatFlux");
-        model.component(comp).physics("ht").feature("hf_conv").set("minput_temperature_src", "userdef");
-        model.component(comp).physics("ht").feature("hf_conv").set("minput_temperature", "Tinf");
-        model.component(comp).physics("ht").feature("hf_conv").set("HeatTransferCoefficientType", "UserDef");
+        model.component(comp).physics("ht").feature("hf_conv").set("Text", "Tinf");
         model.component(comp).physics("ht").feature("hf_conv").set("h", "h_conv");
 
         // 网格

@@ -202,3 +202,42 @@
   小案例 (E1/ET2/T1/T2 等) 单案例耗时反而上升 ~50%, 但总量小, 不影响结论。
 - **文档**: `machine-profile.md` (CPU/核数实测)、`commands.lock.md` (`-np` 约束)、
   `local-evidence-index.md` §21、`AGENTS.md` 回归纪律各补一条。
+
+## 2026-09-19 对流边界环境温度属性纠错 + 默认值清理
+
+- **用户命题**: "Convective ambient temperature 是 `Text` 而非 `minput_temperature`;
+  `minput_temperature` 是 `HeatFluxBoundary` 上的死属性"。要求构造案例校验。
+- **判定: 成立 (有保留)** —— `minput_temperature` 是**合法但惰性**: `hasProperty=true`、
+  `properties()` 列出、`set()` 接受、读回正常, 但**不进方程**; 环境温度由 `Text` 驱动。
+- **方法 (契约层 + 行为层)**: 临时探针 `ConvAmbientProbe` (跑完即删), 2D 方板 1D 沿 x 导热
+  (k=10, L=0.1, x=0 定温 373.15 K, x=L 对流 h=100, hL/k=1) → 端面温度 = (373.15 + T_amb)/2;
+  候选环境温度 273.15/293.15/373.15 K 相互差 10~100 K, 远超网格误差; 每配置导出场 CSV 离线比对解析值。
+  6 个配置实测: 只设 h / 只设 `minput_temperature` / 两者都设 → 端面温度均为 333.15 K (环境温度 = 默认
+  293.15 K); 只设 `Text=273.15` → 323.15 K; `Text` 与 `minput_temperature` 对抗时 `Text` 恒胜。
+  与解析值四位小数一致, 判定无歧义。**契约层无法区分死活** (两个键都合法、默认值相同、无任何报错)。
+- **官方模型挖掘 (1839 个 .mph)**: 201 个含对流边界, `HeatFluxBoundary` 特征同时携带两个键,
+  `minput_temperature` 几乎恒为未改动的默认 `293.15[K]`, `Text` 承载物理环境温度表达式
+  (`T_amb`/`T_air`/`Ti`/`0[degC]`/`80[degC]`/`aveop2(T)` 等) —— 与行为层结论一致。
+- **影响面 (已修)**: 库内 6 个案例 (TFinArray / TRingTransient / EcTSmCube / EcTCylinder /
+  TRevolve / EcTSmBusbar) 原用 `minput_temperature`, 实际环境温度一直是默认 293.15 K
+  (与设定 293.0 仅差 0.15 K, 落在容差内故未被既有检查发现)。已改为 `set("Text", ...)`,
+  `src/` 与 `autocomsol/references/examples/` 同步。
+- **默认值清理 (用户第二点)**: 写等于默认值的 `set` 是噪声。临时探针 `PropDefaultProbe`
+  逐键读回默认值: `HeatFluxBoundary.HeatTransferCoefficientType=UserDef`、
+  `TemperatureBoundary.T0_src=userdef`、`ThermalExpansion.alpha_mat=from_mat`、`Union.intbnd=on`、
+  emw `Port` 的 `SlitType/PortOrientation/InputType=PECBacked/ForwardPort/E` (PortType=Periodic 后重读仍为默认)
+  —— 9 个案例共删 25 条冗余 `set`。行为层对照: 只写必要语句的最小模型解与解析解四位小数一致。
+  需要显式写的: `HeatFluxType`(GeneralInwardHeatFlux)、`h`(0)、`Text`(293.15 K)、`T0`(293.15 K)、
+  `TerminalType`(默认电荷型)、`minput_strainreferencetemperature_src`(fromCommonDef)。
+- **连带修正 (ET2)**: 冗余清理后全回归暴露 `ET2/EcTCylinderStationary` 的 `T_core_profile`
+  由 2.929 K (PASS) 变 3.079 K (FAIL, 判据 <3 K)。根因是**原 PASS 为两处误差相消**:
+  环境温度留在默认 293.15 K (解析解用 293.0 K) 恰好抵消端面散热造成的 ~3.08 K 冷偏差。
+  该案例解析解是"中平面 1D 径向"解, 要求端面轴向散热对中平面可忽略 —— L=1 时该前提不成立
+  (实测中平面低 2.9~3.1 K, |z|∈[0.4,0.5] 处达 -24.7 K)。修正: 圆柱 L=1 → 2,
+  V0 同步 0.3 → 0.6 V (E=V0/L 与 Q1 不变), 同一位置偏差降到 0.24~0.27 K,
+  各检查余量 ≥10x; 单次求解 40.8 s (np=8)。
+- **收尾全回归**: `python scripts/run.py sweep` **14/14 PASS** (np=8)。
+- **文档**: `autocomsol/references/api-validation-probes.md` §3b (属性死活判定: 契约层只证存在,
+  行为层才证有效) + §3c (默认值判定); `autocomsol/references/physics-api-recipes.md`
+  (对流 recipe 行 + "Silently inert properties" + "Writing a value that is already the default");
+  `local-evidence-index.md` §22~§24。探针类跑完即删, 不入库。

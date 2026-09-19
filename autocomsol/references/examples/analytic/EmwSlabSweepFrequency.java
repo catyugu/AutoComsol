@@ -46,7 +46,6 @@ public class EmwSlabSweepFrequency {
         g3.feature("blk_slab").set("size", new String[] {"period", "period", "t_slab"});
         g3.create("uni1", "Union");
         g3.feature("uni1").selection("input").set(new String[] {"blk_air", "blk_slab"});
-        g3.feature("uni1").set("intbnd", "on");
         g3.run();
         System.out.println("GEOM built");
 
@@ -207,9 +206,6 @@ public class EmwSlabSweepFrequency {
         model.component(comp).physics("emw").feature(tag).set("PortName", String.valueOf(name));
         model.component(comp).physics("emw").feature(tag).set("PortExcitation", excite ? "on" : "off");
         model.component(comp).physics("emw").feature(tag).set("PortType", "Periodic");
-        model.component(comp).physics("emw").feature(tag).set("SlitType", "PECBacked");
-        model.component(comp).physics("emw").feature(tag).set("PortOrientation", "ForwardPort");
-        model.component(comp).physics("emw").feature(tag).set("InputType", "E");
         model.component(comp).physics("emw").feature(tag).set("Eampl", new String[][] {{"0"}, {"1"}, {"0"}});
         model.component(comp).physics("emw").feature(tag).set(
                 "n", new String[] {"n_air", "0", "0", "0", "n_air", "0", "0", "0", "n_air"});

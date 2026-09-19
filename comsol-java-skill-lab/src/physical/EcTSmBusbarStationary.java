@@ -11,7 +11,7 @@ import com.comsol.model.util.ModelUtil;
  * <p>几何 (按任务书 8 步): wp1: xz 工作平面 L 形截面 = 外矩形(L+2*tbb, 0.1[m]) 减 内矩形(L+tbb, 0.1-tbb@(0,tbb)), 内圆角
  * tbb + 外圆角 2*tbb; Extrude wbb 沿 y (母线宽度)。 3 个 Cylinder 贯穿螺栓 (r=rad_1): 竖直端螺栓沿 x 贯穿右侧竖条, 水平端两螺栓沿 z
  * 贯穿底部横条、沿宽度 y 对称。 **螺栓仅向外侧伸出 2*tbb**, 内侧端面与母线表面齐平: cyl1 x∈[0.095,0.11] (贯穿 tbb + 伸出 2*tbb), cyl2/3
- * z∈[-0.01,0.005]。 Form Union (intbnd on) 保留内部边界 → 7 个域 (母线 1 + 每螺栓 2 段 × 3 = 6)。
+ * z∈[-0.01,0.005]。 Form Union (intbnd 默认 on) 保留内部边界 → 7 个域 (母线 1 + 每螺栓 2 段 × 3 = 6)。
  *
  * <p>材料: Copper (母线域) + Titanium beta-21S (螺栓域)。 电/热属性按任务书; 结构属性用官方内置数据 (busbar.mph 实证): Copper:
  * E=110GPa, ν=0.35, α=17e-6/K; Ti beta-21S: E=105GPa, ν=0.33, α=7.06e-6/K。
@@ -25,7 +25,7 @@ import com.comsol.model.util.ModelUtil;
  * 最大端面; ground = 水平螺栓 (中心 x≈L/2) 的 z 最小端面。
  *
  * <p>本机证据: - WorkPlane 2D Fillet 顶点: 内圆角=dif1(1)第3顶点, 外圆角=fil1(1)第6顶点 (WorkPlaneProbe 实证) - Extrude
- * input: selection("input").set({"wp1"}) - Form Union: create("uni1","Union"), set("intbnd","on") -
+ * input: selection("input").set({"wp1"}) - Form Union: create("uni1","Union") (intbnd 默认 on, 不必显式 set) -
  * getAdj(2,3) 返回每面邻接域 (Probe 实证)
  *
  * <p>模块需求: ACDC + Heat Transfer + Structural Mechanics 运行: python scripts/run.py all
@@ -126,7 +126,6 @@ public class EcTSmBusbarStationary {
         // 8: Form Union (保留材料分区内部边界)
         g3.create("uni1", "Union");
         g3.feature("uni1").selection("input").set(new String[] {"ext1", "cyl1", "cyl2", "cyl3"});
-        g3.feature("uni1").set("intbnd", "on");
         g3.run();
         System.out.println("GEOM built");
 
@@ -337,7 +336,6 @@ public class EcTSmBusbarStationary {
         model.component(comp).multiphysics("te1").selection().set(allDoms);
         model.component(comp).multiphysics("te1").set("Heat_physics", "ht");
         model.component(comp).multiphysics("te1").set("Solid_physics", "solid");
-        model.component(comp).multiphysics("te1").set("alpha_mat", "from_mat");
         model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature_src", "userdef");
         model.component(comp).multiphysics("te1").set("minput_strainreferencetemperature", "T0");
         System.out.println("TE1 created");
@@ -430,9 +428,7 @@ public class EcTSmBusbarStationary {
         model.component(comp).physics("ht").create(tag, "HeatFluxBoundary", 2);
         model.component(comp).physics("ht").feature(tag).selection().set(faces);
         model.component(comp).physics("ht").feature(tag).set("HeatFluxType", "ConvectiveHeatFlux");
-        model.component(comp).physics("ht").feature(tag).set("minput_temperature_src", "userdef");
-        model.component(comp).physics("ht").feature(tag).set("minput_temperature", "T0");
-        model.component(comp).physics("ht").feature(tag).set("HeatTransferCoefficientType", "UserDef");
+        model.component(comp).physics("ht").feature(tag).set("Text", "T0");
         model.component(comp).physics("ht").feature(tag).set("h", "htc");
     }
 
